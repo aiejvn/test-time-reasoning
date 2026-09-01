@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Internal recruiting doc — never commit; would spoil the interview process for applicants
+# who find this repo on their own.
+ONBOARDING.md
