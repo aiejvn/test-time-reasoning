@@ -75,12 +75,15 @@ didn't anticipate.
 
 ## Repository structure
 
-Right now, this repo holds the proposal and reference material:
+Right now, this repo holds the proposal, reference material, and a set of introductory notebooks:
 
 ```
-PROPOSAL.md   - the full research proposal (motivation, methodology, timeline, team)
-papers/       - reference PDFs for the works cited in the proposal
-LICENSE       - MIT
+PROPOSAL.md              - the full research proposal (motivation, methodology, timeline, team)
+papers/                  - reference PDFs for the works cited in the proposal
+notebooks/onboarding/    - six short, CPU-only notebooks that walk a new DTM through the core
+                            mechanics (activations, a toy SAE, the four-criteria protocol, causal
+                            interventions, entropy/varentropy) before they start on a workstream
+LICENSE                  - MIT
 ```
 
 As implementation starts, code will follow the layout and conventions described in

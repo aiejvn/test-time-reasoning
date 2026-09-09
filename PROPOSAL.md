@@ -28,7 +28,7 @@ Second, reasoning models fail characteristically and dangerously. Their most con
 
 Two research lines bear on these gaps, and they have developed in isolation. The behavioral line studies reasoning from the outside and manages it with external signals: automatic process supervision and step-level reward modelling (Rizvi et al., 2026), uncertainty-gated branching at test time (Li et al., 2026), within-inference self-refinement induced by fine-tuning (Puerto et al., 2025), and the graph structure of multi-step proofs (Zheng et al., 2024). The mechanistic line decomposes a model's internals into interpretable units: superposition explains why individual neurons are not the right unit of analysis (Elhage et al., 2022); sparse dictionary learning recovers interpretable features from real models (Bricken et al., 2023) and scales to production systems (Templeton et al., 2024); and attribution graphs trace those features into circuits (Ameisen et al., 2025; Lindsey et al., 2025). Crucially, the mechanistic line has so far been applied to static content features for entities, topics, and code, and not to the dynamics of a reasoning trajectory.
 
-Our thesis is simple: the external signals the behavioral line relies on — step-correctness, uncertainty, and the impulse to refine — have internal representations that can be recovered and causally manipulated. We propose to find them. The instruments to look inside now exist; the behaviors worth looking at have been characterized; no one has pointed the former at the latter. This is the same phenomenon studied from the opposite vantage point, from the outside in, and it is the natural complement to the proposed advisor's program, which manages reasoning and probes model confidence from the behavioral side.
+Our thesis is simple: the external signals the behavioral line relies on (step-correctness, uncertainty, and the impulse to refine) have internal representations that can be recovered and causally manipulated. We propose to find them. The instruments to look inside now exist; the behaviors worth looking at have been characterized; no one has pointed the former at the latter. This is the same phenomenon studied from the opposite vantage point, from the outside in, and it is the natural complement to the proposed advisor's program, which manages reasoning and probes model confidence from the behavioral side.
 
 This proposal makes the following contributions:
 
@@ -63,13 +63,13 @@ No prior work applies the interpretability instruments of Section 2.1 to the rea
 
 ## 3. Research Questions
 
-**RQ1 — Feature discovery.** What interpretable features are active during the key reasoning behaviors branching at uncertainty, premise commitment, backtracking, and error recovery, and how can each be causally validated rather than merely correlated?
+**RQ1: Feature discovery.** What interpretable features are active during the key reasoning behaviors branching at uncertainty, premise commitment, backtracking, and error recovery, and how can each be causally validated rather than merely correlated?
 
-**RQ2 — Miscalibrated confidence.** What is the mechanistic signature of confident-but-wrong reasoning, the low-entropy failures that surface signals cannot detect? Is there an internal confidence or commitment representation that fires when it should not, and does it predict these failures better than output-distribution statistics?
+**RQ2: Miscalibrated confidence.** What is the mechanistic signature of confident-but-wrong reasoning, the low-entropy failures that surface signals cannot detect? Is there an internal confidence or commitment representation that fires when it should not, and does it predict these failures better than output-distribution statistics?
 
-**RQ3 — Invariance.** How invariant are these features across model families (Qwen-2.5-Math vs. DeepSeek-R1-Distill-Llama), across scale, and across training regime (reinforcement-learned vs. distilled/supervised)?
+**RQ3: Invariance.** How invariant are these features across model families (Qwen-2.5-Math vs. DeepSeek-R1-Distill-Llama), across scale, and across training regime (reinforcement-learned vs. distilled/supervised)?
 
-**RQ4 — Intervention.** Can targeted interventions on the identified features, amplifying a self-correction feature, or suppressing a premise-commitment feature, steer reasoning toward self-correction and improved accuracy in a predictable way?
+**RQ4: Intervention.** Can targeted interventions on the identified features, amplifying a self-correction feature, or suppressing a premise-commitment feature, steer reasoning toward self-correction and improved accuracy in a predictable way?
 
 ## 4. Methodology
 

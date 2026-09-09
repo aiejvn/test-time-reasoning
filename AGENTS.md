@@ -15,10 +15,13 @@ the same change rather than letting them drift.
 ## Repository layout
 
 ```
-PROPOSAL.md   : source of truth for research questions, methodology, timeline
-README.md     : public summary, kept in sync with PROPOSAL.md
-papers/       : reference PDFs cited in PROPOSAL.md; treat as read-only source material, don't edit
-LICENSE       : MIT
+PROPOSAL.md               : source of truth for research questions, methodology, timeline
+README.md                 : public summary, kept in sync with PROPOSAL.md
+papers/                   : reference PDFs cited in PROPOSAL.md; treat as read-only source material, don't edit
+notebooks/onboarding/     : six CPU-only introductory notebooks for new DTMs (see requirements-onboarding.txt);
+                             separate from the notebooks/ and experiments/ directories below, which are for
+                             real research work, not teaching material
+LICENSE                   : MIT
 ```
 
 As implementation lands, follow the methodology sections of the proposal (§4.2–4.6) into a layout like:
@@ -39,9 +42,11 @@ Don't invent a different top-level layout without a reason. Extend this one as w
 - Type hints and docstrings on anything that isn't a one-off script.
 - **Config-driven experiments**: hyperparameters (dictionary size, layer, learning rate, seed) belong
   in a config file or CLI arg, not hardcoded, so a run is reproducible from its config alone.
-- **Notebooks**: fine for exploration, but anything that produces a checked-in result should live as a
-  script under `experiments/`. If a notebook is committed, clear its outputs first; don't commit
-  execution state or embedded plots.
+- **Notebooks**: fine for exploration, but anything that produces a checked-in research result should
+  live as a script under `experiments/`. If a research notebook is committed, clear its outputs first;
+  don't commit execution state or embedded plots. `notebooks/onboarding/` is the deliberate exception:
+  those are teaching material, not research output, and keep their executed outputs committed on
+  purpose, so they're readable on GitHub without anyone having to run them first.
 
 ## Data and model handling
 
