@@ -27,13 +27,14 @@ auditing labels has to come first.
   [Qwen-Scope collection](https://huggingface.co/collections/Qwen/qwen-scope). It is small enough for our GPU
   (roughly 3.5 GB in bf16, verify), and subject to change. We looked at Qwen3-0.6B first, but Qwen-Scope
   [has no SAE for it](https://arxiv.org/html/2605.11887v1) and we aren't training one today. Gemma Scope only
-  works with Gemma, so it is out. Verify that the SAEs load through SAELens as the model cards claim.
+  works with Gemma, so it is out. The Qwen-Scope model cards show loading the weights by hand with
+  `torch.load`, not through SAELens (see Software below).
 - **Features:** a bridge or landmark feature for the demo, and a Queen's University feature that we tune both
   up and down and audit. We search for them rather than assuming an index.
 - **No reasoning models today.** That's the real project. The MVP is just the method.
 
 Things marked (verify) come from memory or a single search and need checking against the live docs. In
-particular, confirm that the Qwen-Scope SAEs load as described and that SAELens has moved to Decode Research.
+particular, confirm that the Qwen-Scope SAEs load as described.
 Qwen-Scope may not be on Neuronpedia, so published labels may not exist for it.
 
 ## The criticism
@@ -106,6 +107,26 @@ others we saw only the title and a search snippet, so open them before they go o
 We aren't trying to settle any of this today. We want to show that a cheap audit can catch a bad label on a
 real feature, and that we can run the same audit on every feature we claim later.
 
+## Software
+
+Found by web search in October 2026. Version numbers and install steps are not checked, so confirm each
+against its own docs. [AGENTS.md](AGENTS.md) says to extend SAELens and TransformerLens instead of rebuilding
+them. For this MVP we may have to deviate, as the first row explains, and the notebook should say so.
+
+| Job | Package | Notes |
+|---|---|---|
+| Load model and SAE, get activations | Plain Hugging Face `transformers`, plus [SAELens](https://decoderesearch.github.io/SAELens/dev/) for the SAE class | The Qwen-Scope cards load the SAE with `torch.load` and apply the encoder weights and bias themselves ([example card](https://huggingface.co/Qwen/SAE-Res-Qwen3-8B-Base-W64K-L0_50)). So for the MVP, hand-rolled encode and decode on a forward hook is the safe path. SAELens `SAE.from_pretrained` is for releases it already knows, and we haven't confirmed it knows Qwen-Scope. SAELens is also [on PyPI](https://pypi.org/project/sae-lens/) and has [moved to Decode Research](https://github.com/decoderesearch/SAELens). |
+| Steering (clamp up or down) | A forward hook we write ourselves | No library seemed worth the dependency for clamping one feature. The write-up is a few lines: encode, set the feature's activation, decode, add back the reconstruction error. [SAE-TS](https://github.com/slavachalnev/SAE-TS) is a research repo on steering vectors that target SAE features, useful as a reference. |
+| Explaining and scoring labels | [Delphi](https://github.com/EleutherAI/sae-auto-interp) (EleutherAI, earlier called sae-auto-interp) | Collects activations, asks an LLM for an explanation, and scores it by detection and fuzzing. Good for our falsification test. It needs an LLM to run the explainer, which may be a cost or GPU question on the day. |
+| Absorption and other SAE metrics | [SAEBench](https://github.com/adamkarvonen/SAEBench) (`sae-bench` on [PyPI](https://pypi.org/project/sae-bench/0.3.0/)) | Has a feature absorption eval, but it is built on first-letter classification, not on concepts like Queen's. Use it as a reference for the method, and do our own absorption test on our probe sets. |
+| Browsing features | [Neuronpedia](https://docs.neuronpedia.org/sparse-autoencoder) | Only helps if Qwen-Scope is hosted there, which we haven't confirmed. |
+| Training SAEs (fallback only) | [EleutherAI sparsify](https://github.com/EleutherAI/sparsify) or SAELens | Out of scope today. Listed so we know where to go if the model changes. |
+| Larger models remotely | nnsight / NDIF | Only if local hardware stops being enough. From an earlier vetting pass, not re-checked here. |
+
+Recommendation: `transformers` plus our own encode/decode and clamp hooks for the core pipeline, Delphi for
+the label tests, SAEBench as a method reference. That keeps the day's code small and avoids debugging a
+loader that may not support our SAEs.
+
 ## Workstreams
 
 ### 1. Data: probe sets
@@ -131,8 +152,9 @@ We'll write a short note on how each set was made, either alongside the files or
 In a Colab GPU notebook:
 
 1. Load the model and a pretrained residual-stream SAE at a middle layer (Qwen3-1.7B-Base and a Qwen-Scope
-   SAE by default). Per [AGENTS.md](AGENTS.md), use SAELens and TransformerLens, and prefer the newer
-   TransformerLens bridge API for new code (verify that it supports Qwen3).
+   SAE by default) with the tools listed under Software. [AGENTS.md](AGENTS.md) prefers SAELens and
+   TransformerLens, so use them where they work, and say in the notebook where we hand-rolled something
+   because they don't support Qwen-Scope.
 2. Run the target sets through the model, encode with the SAE, and rank features by mean activation on the
    target set minus mean activation on the neutral set.
 3. For the top candidates, record top tokens and examples, and read the published Neuronpedia label if there is
