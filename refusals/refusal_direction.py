@@ -107,6 +107,7 @@ def make_tokenize_fn(model: HookedTransformer, no_think: bool):
 
     tokenize.has_template = has_template
     tokenize.example = fmt("<INSTRUCTION>")
+    tokenize.format = fmt
     return tokenize
 
 

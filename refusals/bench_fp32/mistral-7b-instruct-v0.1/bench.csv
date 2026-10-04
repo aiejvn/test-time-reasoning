@@ -1,0 +1,9 @@
+max_new,condition,path,seconds,new_tokens,tok_per_s,refusal_rate,exact_match,mean_shared_prefix_frac
+64,baseline,loop,27.52,1024,37.2,0.0,,
+64,baseline,tl_cached,6.68,1024,153.4,0.0,1.0,1.0
+64,baseline,tl_cached_drop,6.67,1024,153.6,0.0,1.0,1.0
+64,baseline,hf_hooks,1.94,1024,526.7,0.0,1.0,1.0
+64,ablation,loop,27.67,1024,37.0,0.0625,,
+64,ablation,tl_cached,6.74,1024,151.8,0.0625,1.0,1.0
+64,ablation,tl_cached_drop,6.75,1024,151.7,0.0625,1.0,1.0
+64,ablation,hf_hooks,1.99,1024,515.7,0.0625,1.0,1.0

@@ -4,7 +4,7 @@
 set -u
 cd "$(dirname "$0")"
 export HF_HOME=/dev/shm/refusal/hf HF_HUB_ENABLE_HF_TRANSFER=1
-PY=../.venv/bin/python
+PY=/root/kevin/.venv/bin/python
 
 # slug | HF id | extra args
 MODELS=(
