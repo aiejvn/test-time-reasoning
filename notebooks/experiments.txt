@@ -1,0 +1,33 @@
+Question: For a Gemma3 failure mode (bad code, bias, user deception), do any SAE features, alone or combined, track the failure closely or coincide with it?
+
+Datasets:
+
+	- Bad code
+		- Vulnerable vs. patched function pairs (DiverseVul or CVEfixes)
+		- Qwen’s own HumanEval/MBPP solutions 
+	- Bias 
+		- Discrim-Eval
+		- BBQ
+	- User deception
+		- Instructed lying, using true/false statement sets (Azaria & Mitchell or Geometry of Truth) under an “answer honestly” vs. “deceive the user” system prompt
+		- MASK
+
+Pretrained SAEs (to start):
+
+- Gemma Scope 2, 4B-IT residual SAEs (65k width, 16k width, 262k width)
+- May train our own SAEs if we have time! (or if the pretrained ones don't perform well enough)
+
+Metrics:
+
+Detection: per-feature AUROC (with Cohen’s d and FDR correction) against a dense linear probe baseline
+Correlation of activations: point-biserial correlation between feature activation and the failure label
+Interpretability: autointerp score, meaning how well an LLM’s feature description predicts held-out activations
+Causality: change in failure rate when ablating the candidate features, versus ablating random features of matched frequency
+
+Some (Potentially) Relevant Packages 
+
+SAELens for loading and training SAEs, and sparsify as an alternative trainer
+SAEBench for evaluating SAEs
+HF transformers with hooks on decoder-layer outputs as the baseline for activation extraction. TransformerLens (TransformerBridge) and nnsight are alternatives
+scikit-learn, SciPy and statsmodels for probes, AUROC, bootstrap and FDR
+Neuronpedia for feature dashboards
