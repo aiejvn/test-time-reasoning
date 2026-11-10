@@ -75,17 +75,75 @@ didn't anticipate.
 
 ## Repository structure
 
-Right now, this repo holds the proposal and reference material:
-
 ```
-PROPOSAL.md   - the full research proposal (motivation, methodology, timeline, team)
-papers/       - reference PDFs for the works cited in the proposal
-LICENSE       - MIT
+PROPOSAL.md        - the full research proposal (motivation, methodology, timeline, team)
+papers/            - reference PDFs for the works cited in the proposal
+notebooks/         - Gemma SAE failure-mode experiments, one notebook per failure case (see below)
+src/sae_env.py     - shared helpers: load Gemma, hook the residual stream, load Gemma Scope SAEs, generate, pool features
+requirements.txt   - pinned dependencies
+.env.example       - template for the local, gitignored .env (HF_TOKEN)
+LICENSE            - MIT
 ```
 
-As implementation starts, code will follow the layout and conventions described in
-[AGENTS.md](AGENTS.md) (SAE training/infra, feature validation, causal interventions, and
-evaluation/diagnostics, matching the workstreams below).
+Further code will follow the layout and conventions described in [AGENTS.md](AGENTS.md) (SAE
+training/infra, feature validation, causal interventions, and evaluation/diagnostics, matching the
+workstreams below).
+
+## Gemma SAE failure-mode experiments
+
+A side track of the SAE workstream (not part of [PROPOSAL.md](PROPOSAL.md)'s reasoning-trajectory work):
+for failures of Gemma-3-4B-IT, do SAE features track the failure? Each notebook tries to elicit one
+failure on as many examples as possible with greedy decoding, auto-labels it, and caches residual-stream
+SAE features (Gemma Scope 2, layer 17, 16k, medium L0 by default) for analysis. Custom SAE training and the
+full metrics (AUROC vs a dense probe, FDR, autointerp, ablation) are not built yet.
+
+| notebook | failure | data |
+|---|---|---|
+| `notebooks/bad_code.ipynb` | incorrect code (unit tests); missed vulnerabilities | HumanEval, MBPP, DiverseVul |
+| `notebooks/bias.ipynb` | stereotype-consistent answers; discrepant decisions | BBQ, Discrim-Eval |
+| `notebooks/deception.ipynb` | lying when instructed or pressured | Geometry of Truth, MASK |
+
+### Setup
+
+Needs Python 3.12 and an NVIDIA GPU (developed on one A10G, 23 GB; Gemma takes about 8.6 GB in bf16).
+`E.load_gemma` refuses to fall back to CPU.
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env        # then put your Hugging Face token in .env
+```
+
+### Models and data
+
+- **Gemma-3-4B-IT** is gated. Accept the license on [its Hugging Face page](https://huggingface.co/google/gemma-3-4b-it)
+  (manual approval), create a read token at https://huggingface.co/settings/tokens, and set `HF_TOKEN` in `.env`.
+  `src/sae_env.py` loads `.env` on import, so notebooks need nothing else. The weights (about 8.6 GB) download to
+  the Hugging Face cache on first use; to fetch them ahead of time:
+  `set -a; source .env; set +a; hf download google/gemma-3-4b-it`.
+- **Gemma Scope 2 SAEs** are ungated and download through SAELens on first load (`SAE_RELEASE = "gemma-scope-2-4b-it-res"`,
+  ids like `layer_17_width_16k_l0_medium`). Available residual SAEs: layers 9, 17, 22, 29; widths 16k, 65k, 262k, 1m;
+  L0 small, medium, big. The SAE for layer L must be fed layer L's resid_post, which `E.get_resid_post` does.
+- **Datasets** download automatically on first run through `datasets`, except Geometry of Truth, whose CSVs are
+  fetched from GitHub into `artifacts/data/`.
+
+### Running
+
+```bash
+jupyter lab        # open a notebook in notebooks/ and run all cells
+```
+
+`QMIND_N` (default 200) sets examples per condition; a full run of all three notebooks at N=200 took about 30 minutes.
+Every example's prompt, response and label is written to `artifacts/logs/<section>.jsonl` (plus `.meta.json`), and pooled
+activations to `artifacts/*.pt`. `artifacts/` is gitignored; never commit it. Notebooks are committed without outputs:
+run `nbstripout --install` once per clone.
+
+### Known limitations of the current labelers
+
+- DiverseVul triage: Gemma is at chance (about 52% accuracy), so failures mostly reflect the prompt, and the "functions labeled vulnerable" are noisy.
+- Geometry of Truth: under the deceive prompt Gemma mostly gives a constant answer instead of inverting the truth, so the failure rate overstates real lying (only `sp_en_trans` inverts).
+- MASK: the judge is Gemma itself and is noisy.
+- Discrim-Eval: few failures (14 at N=200), and the baseline row differs in age as well as race.
 
 ## Timeline
 

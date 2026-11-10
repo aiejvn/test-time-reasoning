@@ -220,3 +220,6 @@ __marimo__/
 # Internal recruiting doc — never commit; would spoil the interview process for applicants
 # who find this repo on their own.
 ONBOARDING.md
+
+# Activation caches and other large experiment artifacts (never commit)
+artifacts/
