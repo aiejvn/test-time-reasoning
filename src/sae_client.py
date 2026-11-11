@@ -44,7 +44,9 @@ def generate(convs, max_new_tokens=256, batch_size=16, do_sample=False, temperat
     return r.json()
 
 
-def pooled_features(gens, layer, pool="resp_mean", use_sae=True, batch_size=8):
+def pooled_features(gens, layer, pool="resp_mean", use_sae=True, batch_size=None):
+    # batch_size=None -> the server's fixed default, split fairly across however many
+    # /pooled_features requests are concurrently in flight.
     r = _session.post(f"{SERVER_URL}/pooled_features", json=dict(
         gens=gens, layer=layer, pool=pool, use_sae=use_sae, batch_size=batch_size,
     ), timeout=None)
