@@ -1,0 +1,15 @@
+# Interventions along the probe direction: python experiments/intervene.py --config configs/intervene.yaml
+# Pick alpha_frac on dev first (configs/intervene_sweep.yaml), then set it here for the held-out run.
+run_name: heldout
+out_dir: artifacts/intervene
+baseline_config: configs/baseline.yaml   # source of splits, prompt variant, and decoding settings
+probe_dir: artifacts/probe/gsm8k_dev     # probe.py output (directions.pt, results.json)
+pool: prompt_last
+layer: best                              # "best" = highest-CV-AUROC layer for `pool`, or an int
+positions: all                           # all | generated
+random_seed: 1                           # random-direction control
+alpha_fracs: [0.25]                      # steering strength as a fraction of median per-token ||resid|| at the layer
+conditions: [probe_pos, random_pos, probe_ablate]   # `none` always runs; see intervene.py for the full list
+evals:                                   # first n problems of each held-out split (math first, then code transfer)
+  - {benchmark: gsm8k, split: test, n: 40}
+  - {benchmark: humanevalplus, split: test, n: 24}

@@ -1,0 +1,10 @@
+# Linear probes on baseline activations: python experiments/probe.py --config configs/probe.yaml
+run_name: gsm8k_dev
+out_dir: artifacts/probe
+baseline_dir: artifacts/baseline/baseline   # a baseline.py run directory
+benchmark: gsm8k                            # probe trained on math only; transfer to code is tested by intervene.py
+split: dev
+cv_folds: 5
+C: 0.01                                     # inverse L2 strength; d_model=4096 >> n, so regularize heavily
+seed: 0
+select_pool: prompt_last                    # pool used to pick the intervention layer (pre-reasoning, no answer leakage)
