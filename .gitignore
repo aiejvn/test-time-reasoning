@@ -1,0 +1,33 @@
+# Local Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Generated / local experiment artifacts
+runs/
+smoke/
+*.log
+
+# Dataset caches; keep the small, fixed split manifest
+/data/*
+!/data/splits.json
+
+# Model weights and checkpoints (never commit large binaries accidentally)
+checkpoints/
+models/
+*.safetensors
+*.pt
+*.pth
+*.ckpt
