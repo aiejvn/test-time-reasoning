@@ -56,7 +56,13 @@ def encode_problems(model, tok, sae, layer, rows):
         ids = torch.tensor([p + q], device=model.device)
         with R.capture_resid_post(model, [layer]) as buf:
             model.model(input_ids=ids, use_cache=False)
-        z = sae.encode(buf[layer][0][0, 1:].to(sae.W_enc.dtype))  # drop BOS (huge-norm outlier)
+        x = buf[layer][0][0, 1:].to(sae.W_enc.dtype)  # drop BOS (huge-norm outlier)
+        z = sae.encode(x)
+        xh = sae.decode(z).float()
+        x = x.float()
+        out["rel_err"].append((((x - xh) ** 2).sum(-1) / (x ** 2).sum(-1)).mean().item())
+        out["cos"].append(torch.nn.functional.cosine_similarity(x, xh, dim=-1).mean().item())
+        out["l0"].append((z > 0).float().sum(-1).mean().item())
         n_p = len(p) - 1
         zr = z[n_p:] if len(q) else z[-1:]
         mx, arg = z.max(0)
@@ -102,20 +108,25 @@ def main():
     model, tok = R.load_model(cfg["model_id"])
     sae = load_sae(spec)
     src = ROOT / cfg["baseline_dir"]
-    lines = [f"## {cfg['sae']} (layer {layer}, {sae.cfg.d_sae} features)", ""]
-    tops = {}
+    lines = [f"## {cfg['sae']}: layer {layer}, {sae.cfg.d_sae:,} features", "", spec.get("description", ""), ""]
+    tops, recon = {}, []
+    POOL = {"prompt_last": "last prompt token (the `<think>\\n` position, before any reasoning is generated)",
+            "resp_mean": "mean over all response tokens (reasoning + answer)"}
     for tag in cfg["benchmarks"]:
         rows = [json.loads(l) for l in open(src / f"{tag}.jsonl")]
         print(f"[{cfg['sae']}] encoding {tag} ({len(rows)} problems) ...", flush=True)
         codes = encode_problems(model, tok, sae, layer, rows)
         torch.save({k: v for k, v in codes.items() if k != "ids"}, out / f"{tag}_codes.pt")
+        recon.append(f"| {tag} | {len(rows)} | {sum(codes['cos']) / len(rows):.3f} | {sum(codes['rel_err']) / len(rows):.3f} "
+                     f"| {sum(codes['l0']) / len(rows):.1f} |")
         correct = torch.tensor([bool(r["correct"]) for r in rows])
         for pool in cfg["pools"]:
             df = sae_env.feature_contrast(codes[pool], ~correct, k=cfg["top_k"])  # "fail" = wrong answer
             tops[(tag, pool)] = set(df.feature)
-            lines += [f"**{tag}, {pool}** (n = {len(rows)}, {int((~correct).sum())} wrong). "
-                      "d > 0 means higher on wrong answers.", "",
-                      "| feature | d | mean (wrong) | mean (correct) | peak tokens | top context |", "|---|---|---|---|---|---|"]
+            lines += [f"### {tag}, pooled at the {POOL[pool]}", "",
+                      f"n = {len(rows)} problems: {int(correct.sum())} correct, {int((~correct).sum())} wrong.", "",
+                      "| feature | Cohen's d | mean act. (wrong) | mean act. (correct) | peak tokens | strongest context |",
+                      "|---|---|---|---|---|---|"]
             for _, r in df.iterrows():
                 f = int(r.feature)
                 ctx = contexts(tok, codes, f)
@@ -126,9 +137,16 @@ def main():
             lines.append("")
     if len(cfg["benchmarks"]) == 2:
         a, b = cfg["benchmarks"]
+        lines += ["### Shared features between math and code", ""]
         for pool in cfg["pools"]:
-            lines.append(f"Top-{cfg['top_k']} overlap between {a} and {b} ({pool}): {len(tops[(a, pool)] & tops[(b, pool)])}")
+            shared = sorted(tops[(a, pool)] & tops[(b, pool)])
+            lines.append(f"- {pool}: {len(shared)} of the top {cfg['top_k']} features appear in both {a} and {b}"
+                         + (f" ({', '.join(map(str, shared))})" if shared else "") + ".")
         lines.append("")
+    lines += ["### Reconstruction quality on our data", "",
+              "How well this SAE reproduces the model's actual layer output on these generations (all tokens except BOS). "
+              "Cosine 1.0 and relative error 0.0 would be perfect. L0 is the average number of features active per token.", "",
+              "| benchmark | problems | mean cosine | mean relative error | mean L0 |", "|---|---|---|---|---|", *recon, ""]
     (out / "summary.md").write_text("\n".join(lines))
     print("\n".join(lines))
 
