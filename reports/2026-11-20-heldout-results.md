@@ -1,6 +1,6 @@
 # Held-out intervention results: `heldout_half`
 
-**Status:** in progress: 6 of 8 condition runs finished. This file is regenerated from the run's outputs every 10 minutes.
+**Status:** in progress: 7 of 8 condition runs finished. This file is regenerated from the run's outputs every 10 minutes.
 
 ## What this run tests
 
@@ -45,6 +45,7 @@ Whether pushing DeepSeek-R1-Distill-Llama-8B's internal activations along a dire
 | gsm8k | Random-direction control | 20 | 95.0% | 1486 | 10.0% | 2 / 1 | 1 |
 | humanevalplus | No edit | 12 | 83.3% | 2354 | 16.7% | n/a | n/a |
 | humanevalplus | Probe ablation | 12 | 66.7% | 2438 | 25.0% | 0 / 2 | 0.5 |
+| humanevalplus | Probe steering | 12 | 83.3% | 2301 | 16.7% | 1 / 1 | 1 |
 
 ## Per-problem outcomes: gsm8k test
 
@@ -77,20 +78,20 @@ Whether pushing DeepSeek-R1-Distill-Llama-8B's internal activations along a dire
 
 ✓ = correct, ✗ = wrong. The number is the response length in tokens; T = hit the token limit. A row where conditions disagree is a problem the edit flipped.
 
-| problem | No edit | Probe ablation |
-|---|---|---|
-| HumanEval/16 | ✓ 802 | ✓ 809 |
-| HumanEval/143 | ✗ 4096 T | ✗ 4096 T |
-| HumanEval/109 | ✓ 3525 | ✗ 4096 T |
-| HumanEval/61 | ✓ 1748 | ✓ 1943 |
-| HumanEval/34 | ✓ 1273 | ✓ 1357 |
-| HumanEval/4 | ✓ 1349 | ✓ 1366 |
-| HumanEval/107 | ✓ 1967 | ✓ 1736 |
-| HumanEval/126 | ✗ 4096 T | ✗ 4096 T |
-| HumanEval/128 | ✓ 2226 | ✓ 2431 |
-| HumanEval/154 | ✓ 3315 | ✗ 3099 |
-| HumanEval/105 | ✓ 2198 | ✓ 2669 |
-| HumanEval/74 | ✓ 1648 | ✓ 1559 |
+| problem | No edit | Probe ablation | Probe steering |
+|---|---|---|---|
+| HumanEval/16 | ✓ 802 | ✓ 809 | ✓ 762 |
+| HumanEval/143 | ✗ 4096 T | ✗ 4096 T | ✓ 2926 |
+| HumanEval/109 | ✓ 3525 | ✗ 4096 T | ✓ 3499 |
+| HumanEval/61 | ✓ 1748 | ✓ 1943 | ✓ 1637 |
+| HumanEval/34 | ✓ 1273 | ✓ 1357 | ✓ 1713 |
+| HumanEval/4 | ✓ 1349 | ✓ 1366 | ✓ 1376 |
+| HumanEval/107 | ✓ 1967 | ✓ 1736 | ✓ 1907 |
+| HumanEval/126 | ✗ 4096 T | ✗ 4096 T | ✗ 4096 T |
+| HumanEval/128 | ✓ 2226 | ✓ 2431 | ✓ 2234 |
+| HumanEval/154 | ✓ 3315 | ✗ 3099 | ✗ 4096 T |
+| HumanEval/105 | ✓ 2198 | ✓ 2669 | ✓ 1724 |
+| HumanEval/74 | ✓ 1648 | ✓ 1559 | ✓ 1643 |
 
 ## Caveats
 
