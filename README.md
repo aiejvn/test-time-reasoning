@@ -2,13 +2,114 @@
 
 ### Mechanistic Interpretability of Test-Time Reasoning in Large Language Models
 
-A QMIND research project (2026-2027) building a sparse-autoencoder account of uncertainty, premise
-commitment, and error recovery in reasoning models, asking what's happening inside a model in the
-moment it goes confidently, fluently wrong.
+A QMIND research project (2026-2027) on what happens inside a reasoning model when it goes confidently,
+fluently wrong. The full research proposal is in [PROPOSAL.md](PROPOSAL.md); the project overview is
+[further down](#project-overview).
 
-The full research proposal lives in [PROPOSAL.md](PROPOSAL.md); this README is a working summary.
+## This branch: DeepSeek-R1-Distill-Llama-8B infrastructure
 
-## The problem
+The main deliverable of this branch is infrastructure for running **DeepSeek-R1-Distill-Llama-8B** (32 layers,
+4096-dimensional residual stream) in-process on one GPU, with four capabilities:
+
+1. **Run the model** on GSM8K (math) and HumanEval+ (code), with batched greedy generation, automatic grading, and
+   seeded dev/test splits.
+2. **Read activations:** capture any layer's output (resid_post) at every token, or pooled per problem (last prompt
+   token, response mean, last response token), at several layers in one pass.
+3. **Apply changes during generation:** hook any layer and edit its output on every forward pass (add a direction,
+   project a direction out, or any function you write). Baseline and edited runs share one code path, so their
+   settings match exactly.
+4. **Linear probes:** train per-layer classifiers on those activations, then use their directions as intervention
+   targets. This is in [`linear_probe/`](linear_probe/).
+
+Everything is one Python module, [`src/reasoning_env.py`](src/reasoning_env.py). There's no server. The model takes
+about 16 GB in bf16, so it fits on a 23 GB A10G with room for generation.
+
+### Where things are
+
+| path | what's there |
+|---|---|
+| [`src/reasoning_env.py`](src/reasoning_env.py) | **Core infrastructure.** Model loading, activation capture, intervention hooks, benchmark loading, prompting and grading. |
+| [`src/sae_env.py`](src/sae_env.py) | Model-agnostic helpers reused by the above (forward hooks, batched chat generation, logging); also the Gemma helpers. |
+| [`experiments/baseline.py`](experiments/baseline.py), [`configs/baseline.yaml`](configs/baseline.yaml) | Baseline run: generate, grade, save every response and the activations at layers 4/19/29/30. |
+| [`linear_probe/`](linear_probe/) | Linear probes and probe-guided interventions. Code, configs, a [README](linear_probe/README.md) and the [results report](linear_probe/REPORT.md). |
+| [`experiments/sae_explore.py`](experiments/sae_explore.py), [`experiments/sae_report.py`](experiments/sae_report.py), [`configs/sae_explore.yaml`](configs/sae_explore.yaml) | SAE feature exploration with pretrained SAEs for this model. Results in [`reports/2026-11-20-sae-exploration.md`](reports/2026-11-20-sae-exploration.md). |
+| [`coding_eval/`](coding_eval/) | Jacob's Dockerized EvalPlus evaluator for saved HumanEval+ outputs (merged from `jacobpowerr/qmind-coding-eval`). Not yet wired to our outputs. |
+| `artifacts/` (gitignored) | Every run's outputs: responses, grades, activations, probe directions, intervention runs. |
+| [`notebooks/`](notebooks/) | Earlier Gemma-3-4B-IT SAE failure-mode notebooks (separate track, [below](#gemma-sae-failure-mode-experiments)). |
+
+### Quick start
+
+```python
+import sys; sys.path.insert(0, "src")
+import reasoning_env as R
+
+model, tok = R.load_model()                                   # DeepSeek-R1-Distill-Llama-8B, bf16, cuda
+items = R.load_benchmark("gsm8k", n_dev=200, n_test=300)["dev"][:8]
+
+# Generate + grade (rows: id, correct, pred, n_resp_tokens, truncated, ...; gens: prompt_ids, resp_ids, text)
+rows, gens = R.run_benchmark(model, tok, "gsm8k", items)
+
+# Read activations: {pool: {layer: [n_problems, 4096]}}
+acts = R.extract_activations(model, tok, gens, layers=[4, 19, 29, 30], pools=["prompt_last", "resp_mean"])
+
+# Apply changes during generation, at any layer. Same call, same settings, plus `edits`.
+u = acts["prompt_last"][29].mean(0)                           # any [4096] direction
+rows, gens = R.run_benchmark(model, tok, "gsm8k", items, edits={29: R.steer(u, alpha=3.9)})     # h + 3.9·unit(u)
+rows, gens = R.run_benchmark(model, tok, "gsm8k", items, edits={29: R.ablate(u)})               # h − (h·û)û
+rows, gens = R.run_benchmark(model, tok, "gsm8k", items,
+                             edits={29: R.steer(R.random_direction(4096, seed=1), alpha=3.9)})  # random control
+
+# Lower level: hook any forward/generate call yourself
+with R.intervene(model, {19: lambda h: h * 1.1}, positions="generated"):   # edit only generated tokens
+    out = model.generate(...)
+with R.capture_resid_post(model, [19, 29]) as buf:                         # buf[layer] = list of [B, T, 4096]
+    model.model(**inputs)
+```
+
+- `alpha` is in activation-length units, and typical per-token lengths grow with depth: about 4 at layer 4, 16 at
+  layer 19, and 38 to 43 at layers 29 and 30.
+- `positions="all"` (the default) edits the prompt and every generated token. `"generated"` edits only generated
+  tokens.
+
+### Baseline run
+
+```bash
+source .venv/bin/activate
+python experiments/baseline.py --config configs/baseline.yaml               # full run
+python experiments/baseline.py -o run_name=smoke -o 'splits=[dev]' \
+  -o benchmarks.gsm8k.n_dev=8 -o benchmarks.humanevalplus.n_dev=8            # ~7 min smoke test
+```
+
+**Settings:**
+- **Splits:** seeded and disjoint. GSM8K is 200 dev / 300 test, from its 1319-problem test set. HumanEval+ is
+  64 dev / 99 test; HumanEval/32 is excluded because its HF test fails the reference solution.
+- **Decoding:** greedy, with DeepSeek's recommended prompt ("Please reason step by step, and put your final answer
+  within \boxed{}"), up to 4096 new tokens.
+- **Prompt ablation:** `prompt_variant=plain` drops the step-by-step instruction.
+- **Overrides:** any config key can be overridden with `-o dotted.key=value`. `benchmarks.<b>.limit=N` runs only the
+  first N problems of each split.
+
+**Grading:**
+- **GSM8K:** the last `\boxed{}` after `</think>` (or the last number) must match exactly.
+- **HumanEval+:** the last python block after `</think>` runs against the base and plus tests (30 s timeout).
+- Responses truncated before they finish count as wrong.
+
+**Outputs** go to `artifacts/baseline/<run_name>/`:
+- `<bench>_<split>.jsonl`: every problem's prompt, response, grade, length and truncation flag.
+- `.meta.json`: config, launch command and summary.
+- `_acts.pt`: the activations.
+- `summary.json`.
+
+Runs are resumable per split. Set `wandb.enabled=true` to log to W&B.
+
+### Results so far
+
+- **Linear probes and interventions:** [`linear_probe/REPORT.md`](linear_probe/REPORT.md).
+- **SAE feature exploration:** [`reports/2026-11-20-sae-exploration.md`](reports/2026-11-20-sae-exploration.md).
+
+## Project overview
+
+### The problem
 
 Reasoning models (the DeepSeek-R1 line, the OpenAI o-series, Qwen's math-tuned models) solve hard
 problems by "thinking" in long chains of intermediate steps before answering. We can watch those chains
@@ -27,7 +128,7 @@ motion. This project connects them: train sparse autoencoders (SAEs) on a reason
 while it reasons, and use the behavioral line's signals as instrumentation for finding, validating, and
 causally testing the internal features that actually govern branching, commitment, and recovery.
 
-## Research questions
+### Research questions
 
 - **RQ1, feature discovery.** What interpretable features are active during branching, premise
   commitment, backtracking, and error recovery, and how is each causally validated rather than merely
@@ -43,7 +144,7 @@ causally testing the internal features that actually govern branching, commitmen
 
 See [PROPOSAL.md § 3](PROPOSAL.md#3-research-questions) for the full framing.
 
-## Approach
+### Approach
 
 1. **Train SAEs** on the residual-stream activations of open, reasoning-specialized models: a
    Qwen math/reasoning model and a DeepSeek-R1-distilled model, chosen so a reinforcement-learned vs.
@@ -65,7 +166,7 @@ See [PROPOSAL.md § 3](PROPOSAL.md#3-research-questions) for the full framing.
 
 Full methodology: [PROPOSAL.md § 4](PROPOSAL.md#4-methodology).
 
-## Tech stack
+### Tech stack
 
 SAELens and TransformerLens for SAE training and model internals, HuggingFace for model/dataset
 access, Weights & Biases for experiment tracking, and the open Circuit Tracer library for the
@@ -81,9 +182,11 @@ papers/            - reference PDFs for the works cited in the proposal
 notebooks/         - Gemma SAE failure-mode experiments, one notebook per failure case (see below)
 src/sae_env.py     - shared helpers: load Gemma, hook the residual stream, load Gemma Scope SAEs, generate, pool features
 src/reasoning_env.py - DeepSeek-R1-Distill-Llama-8B: multi-layer activation extraction, intervention hooks, GSM8K/HumanEval+ eval
-experiments/       - baseline.py, probe.py, intervene.py: reasoning intervention experiment (configs in configs/)
+experiments/       - baseline.py (DeepSeek baseline), sae_explore.py + sae_report.py (SAE exploration)
+configs/           - baseline.yaml, sae_explore.yaml
+linear_probe/      - linear probes + probe-guided interventions (code, configs, README, REPORT)
 coding_eval/       - Dockerized EvalPlus HumanEval+ evaluator (merged from jacobpowerr/qmind-coding-eval)
-reports/           - dated status reports with results
+reports/           - SAE exploration report
 requirements.txt   - pinned dependencies
 .env.example       - template for the local, gitignored .env (HF_TOKEN)
 LICENSE            - MIT
@@ -92,86 +195,6 @@ LICENSE            - MIT
 Further code will follow the layout and conventions described in [AGENTS.md](AGENTS.md) (SAE
 training/infra, feature validation, causal interventions, and evaluation/diagnostics, matching the
 workstreams below).
-
-## Reasoning intervention experiment (DeepSeek-R1-Distill-Llama-8B)
-
-Can we improve reasoning by intervening on residual-stream directions at inference time, and does it
-transfer from math (GSM8K) to code (HumanEval+)? Candidate layers: 4, 19, 29, 30 (zero-based, of 32;
-activations are each decoder layer's output, i.e. resid_post). Everything runs in-process on one GPU
-through `src/reasoning_env.py`. There's no server, and the model takes about 16 GB in bf16.
-
-### Baseline
-
-```bash
-source .venv/bin/activate
-python experiments/baseline.py --config configs/baseline.yaml                 # full run
-python experiments/baseline.py -o run_name=smoke -o splits=[dev] \
-  -o benchmarks.gsm8k.n_dev=8 -o benchmarks.humanevalplus.n_dev=8              # ~7 min smoke test
-```
-
-Any config key can be overridden with `-o dotted.key=value`. Both benchmarks get disjoint, seeded
-dev/test splits: dev is for choosing the layer, probe, and steering strength; test is held out. Defaults:
-GSM8K 200/300 (from its 1319-problem test set) and HumanEval+ 64/99 (HumanEval/32 is excluded because
-its HF test fails even the canonical solution). Decoding is greedy with DeepSeek's recommended prompt
-("Please reason step by step, and put your final answer within \boxed{}"), up to 4096 new tokens.
-Setting `prompt_variant=plain` drops the step-by-step instruction, for input ablation.
-
-Outputs go to `artifacts/baseline/<run_name>/`, which is gitignored:
-
-- `<bench>_<split>.jsonl`: one row per problem with `id`, `correct`, `pred`/`code`,
-  `n_resp_tokens`, `truncated`, `closed_think`, plus the exact prompt and response.
-- `<bench>_<split>.meta.json`: the config, the launch command, and summary metrics.
-- `<bench>_<split>_acts.pt`: `{"ids": [...], "acts": {pool: {layer: [N, 4096]}}}`. The pools are
-  `prompt_last`, the last prompt token (before any reasoning), and `resp_mean`, the mean over the
-  response.
-- `summary.json`: accuracy, mean response length, and truncation rate per split.
-
-The run is resumable: splits that already have an `_acts.pt` are skipped. Set `wandb.enabled=true`
-to log to W&B.
-
-Grading: GSM8K takes the last `\boxed{}` after `</think>` (or the last number if there is none) and
-checks for an exact numeric match. HumanEval+ takes the last ```` ```python ```` block after `</think>`
-and runs it against the base and plus tests in a subprocess with a 30 s timeout. A response truncated
-before it finishes counts as wrong.
-
-### Probes and interventions
-
-```bash
-python experiments/probe.py --config configs/probe.yaml                 # per-layer probes -> artifacts/probe/<run>/
-python experiments/intervene.py --config configs/intervene_sweep.yaml   # strength sweep on dev
-python experiments/intervene.py --config configs/intervene.yaml         # held-out: none / probe / random / ablate
-```
-
-`probe.py` fits a logistic regression per (layer, pool) that predicts answer correctness from baseline activations,
-reports cross-validated AUROC, and saves each probe's unit weight vector as a candidate direction. `intervene.py`
-steers or ablates along that direction at the best layer. It reruns the no-edit condition on the same problems with
-the same batching, and reports accuracy, length, truncation, fixed/broken flips, and an exact McNemar p-value. Results
-so far are in [reports/2026-11-20-reasoning-interventions.md](reports/2026-11-20-reasoning-interventions.md).
-
-`coding_eval/` is Jacob's Dockerized EvalPlus evaluator for saved HumanEval+ generations (see its README). It isn't
-wired to these outputs yet.
-
-### Intervention interface
-
-Intervention runs go through the same `run_benchmark` call as the baseline, so the prompts, batching,
-and decoding are identical. `edits` maps a layer to a function that is applied to that layer's output.
-
-```python
-import reasoning_env as R
-model, tok = R.load_model()
-items = R.load_benchmark("gsm8k", 200, 300)["dev"]
-d = probe_direction                                                     # [4096] tensor, e.g. from a linear probe
-rows, gens = R.run_benchmark(model, tok, "gsm8k", items, edits={19: R.steer(d, alpha=8.0)})   # add 8 * unit(d)
-rows, gens = R.run_benchmark(model, tok, "gsm8k", items, edits={19: R.ablate(d)})             # project d out
-rows, gens = R.run_benchmark(model, tok, "gsm8k", items,
-                             edits={19: R.steer(R.random_direction(4096, seed=1), alpha=8.0)}) # random control
-acts = R.extract_activations(model, tok, gens, layers=[4, 19, 29, 30], pools=["prompt_last"])
-```
-
-`alpha` is in residual-norm units, and typical per-token norms grow with depth: about 4 at layer 4,
-16 at layer 19, and 38 to 43 at layers 29 and 30. Pass `positions="generated"` to steer only the
-generated tokens and leave the prompt prefill alone. For hooks outside `run_benchmark`, use
-`with R.intervene(model, {layer: fn}):`, which works around both `forward` and `generate`.
 
 ## Gemma SAE failure-mode experiments
 

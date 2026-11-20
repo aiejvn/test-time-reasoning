@@ -1,4 +1,4 @@
-# Strength sweep on dev problems (never the held-out split): python experiments/intervene.py --config configs/intervene_sweep.yaml
+# Strength sweep on dev problems (never the held-out split): python linear_probe/intervene.py --config linear_probe/configs/intervene_sweep.yaml
 run_name: sweep_dev
 out_dir: artifacts/intervene
 baseline_config: configs/baseline.yaml

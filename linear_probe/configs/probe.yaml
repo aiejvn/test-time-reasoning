@@ -1,4 +1,4 @@
-# Linear probes on baseline activations: python experiments/probe.py --config configs/probe.yaml
+# Linear probes on baseline activations: python linear_probe/probe.py --config linear_probe/configs/probe.yaml
 run_name: gsm8k_dev
 out_dir: artifacts/probe
 baseline_dir: artifacts/baseline/baseline   # a baseline.py run directory
