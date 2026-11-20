@@ -1,6 +1,6 @@
 # SAE feature exploration: DeepSeek-R1-Distill-Llama-8B
 
-**Status:** 4 of 5 SAEs finished; still queued: Galichin et al. paper SAE, layer 19. This file is regenerated after each SAE finishes.
+**Status:** 5 of 5 SAEs finished. This file is regenerated after each SAE finishes.
 
 ## What this is
 
@@ -406,4 +406,91 @@ How well this SAE reproduces the model's actual layer output on these generation
 |---|---|---|---|---|
 | gsm8k_dev | 200 | 0.867 | 0.246 | 32.9 |
 | humanevalplus_dev | 32 | 0.840 | 0.292 | 37.1 |
+
+
+## paper_l19: layer 19, 65,536 features
+
+From 'I Have Covered All the Bases Here: Interpreting Reasoning Features in Large Language Models via Sparse Autoencoders' (Galichin et al. 2025), the paper Jason shared. Trained on this model's layer-19 output on 820M tokens of LMSYS chat and OpenThoughts reasoning traces. No Neuronpedia dashboards; feature numbers are this SAE's own indices.
+
+### gsm8k_dev, pooled at the last prompt token (the `<think>\n` position, before any reasoning is generated)
+
+n = 200 problems: 166 correct, 34 wrong.
+
+| feature | Cohen's d | mean act. (wrong) | mean act. (correct) | peak tokens | strongest context |
+|---|---|---|---|---|---|
+| 32969 | -1.00 | 1.723 | 2.478 | 'didn', 'didn', 'a', 'using', 'using' |  my calculations to make sure I[[ didn]]'t make a |
+| 43427 | -0.88 | 0.920 | 1.566 | 'me', 'me', 'me', 'me', 'me' |  a year. Hmm, let[[ me]] break this down |
+| 38465 | -0.78 | 0.109 | 0.268 | '.', '.', '.', '.', '.' |  I didn't make a mistake[[.]] 30 times |
+| 62649 | +0.65 | 0.834 | 0.621 | '.', '.', '.', '.', '.' |  of poles multiplied by 3[[.⏎⏎]]Wait, maybe |
+| 31489 | -0.64 | 0.041 | 0.192 | ' ', ' ', ' ', ' ', ' ' | S + (5S -[[ ]]4) = |
+| 19045 | -0.62 | 9.363 | 10.623 | '⏎', '⏎', '⏎', '⏎', '⏎' |  within \boxed{}.<｜Assistant｜><think>[[⏎]]Okay, so |
+| 25359 | +0.61 | 1.659 | 1.235 | ' ', '⏎', '⏎', '⏎', '⏎' |  such that A + y =[[ ]]3A.⏎⏎ |
+| 56502 | -0.60 | 0.565 | 0.727 | '⏎', '?', '?', '⏎', '?' |  within \boxed{}.<｜Assistant｜><think>[[⏎]]Okay, so |
+| 5068 | -0.59 | 0.005 | 0.097 | 'Adam', 'they', ',', ',', 'I' | <｜Assistant｜><think>⏎Okay, so[[ Adam]] really wants to |
+| 24459 | -0.58 | 16.889 | 17.343 | 'didn', 'didn', 'didn', 'didn', 'didn' |  my calculations to make sure I[[ didn]]'t make a |
+
+### gsm8k_dev, pooled at the mean over all response tokens (reasoning + answer)
+
+n = 200 problems: 166 correct, 34 wrong.
+
+| feature | Cohen's d | mean act. (wrong) | mean act. (correct) | peak tokens | strongest context |
+|---|---|---|---|---|---|
+| 30613 | -1.85 | 0.191 | 0.535 | 'els', '1', '12', 'worth', '30' | gar eats 18 pretz[[els]] a day. |
+| 58900 | -1.82 | 0.011 | 0.034 | ']', ')', ']', ']', ']' |  6,277⏎\[[]⏎⏎]]Thus, the |
+| 24857 | -1.80 | 0.021 | 0.052 | 'Let', 'Let', 'Let', 'Let', 'Let' |  to get her hourly rate.[[ Let]] me write that |
+| 5539 | -1.77 | 0.060 | 0.163 | '.', '.', '.', '⏎⏎', '.' | 500 is 43,500[[.⏎⏎]]Wait, let |
+| 23506 | -1.77 | 0.019 | 0.056 | '\', '\', '\', '\', 'hours' | [⏎\boxed{68}⏎[[\]]] |
+| 7000 | -1.75 | 0.002 | 0.009 | '⏎⏎', '⏎⏎', '⏎⏎', '⏎⏎', '⏎⏎' |  in 30 days.⏎</think>[[⏎⏎]]Ingrid drinks |
+| 47108 | -1.73 | 0.012 | 0.035 | '{', '{', '{', '{', '{' | ells brought back is \boxed[[{]]12}.⏎</think> |
+| 27314 | -1.73 | 0.001 | 0.004 | '</think>', '</think>', '</think>', '</think>', '</think>' |  potato salad to the picnic.⏎[[</think>]]⏎⏎Ted the |
+| 40536 | -1.72 | 0.011 | 0.029 | 'Answer', 'Answer', 'Answer', 'Answer', 'Answer' |  68 degrees.⏎⏎**Final[[ Answer]]**⏎The second |
+| 20400 | -1.72 | 0.010 | 0.028 | '}', '}.', '}.', '}.', '}.' |  Answer**⏎\boxed{6[[}⏎]]</think>⏎⏎Michael |
+
+### humanevalplus_dev, pooled at the last prompt token (the `<think>\n` position, before any reasoning is generated)
+
+n = 32 problems: 20 correct, 12 wrong.
+
+| feature | Cohen's d | mean act. (wrong) | mean act. (correct) | peak tokens | strongest context |
+|---|---|---|---|---|---|
+| 57002 | +1.84 | 1.373 | 1.183 | '⏎', '⏎', '⏎', '⏎', '⏎' | ]⏎    """⏎'''<｜Assistant｜><think>[[⏎]]Okay, I |
+| 11105 | +1.79 | 1.634 | 1.442 | 'n', 'False', 'correct', 'prefixes', 'units' |  string, let's call it[[ n]].⏎- Check |
+| 26698 | +1.58 | 0.102 | 0.015 | 'spaces', '0', 'capacity', 'appear', 'anywhere' |  each other⏎    Ignore any[[ spaces]] in the input |
+| 25964 | +1.48 | 0.206 | 0.079 | 'is', 'if', '.', ',', 'arguments' |  'array'] and the prefix[[ is]] 'a', |
+| 12746 | +1.48 | 0.224 | 0.059 | 'n', 'input', 'an', 'should', '+' | def prime_length(string):⏎   [[ n]] = len(string |
+| 36176 | +1.42 | 0.177 | 0.046 | ',', 'you', 'Then', 'I', 'triplet' |  2: for each cell[[,]] look at neighbors |
+| 18100 | +1.41 | 0.201 | 0.024 | '29', '⏎', '⏎', '⏎', '⏎' | %13: 13*[[29]]=377. |
+| 42340 | +1.39 | 1.412 | 1.244 | 'if', 'each', ':', 'of', 'possible' |  the function should return True only[[ if]] both conditions are |
+| 7120 | +1.36 | 0.529 | 0.289 | ',', '],', '⏎', '⏎', '⏎' |  a bucket capacity of 3[[,]] you can take |
+| 20950 | +1.36 | 0.494 | 0.331 | 'element', 'So', 'are', ',', 'Largest' | , etc. So the first[[ element]] in 'to |
+
+### humanevalplus_dev, pooled at the mean over all response tokens (reasoning + answer)
+
+n = 32 problems: 20 correct, 12 wrong.
+
+| feature | Cohen's d | mean act. (wrong) | mean act. (correct) | peak tokens | strongest context |
+|---|---|---|---|---|---|
+| 12228 | -3.34 | 0.014 | 0.244 | '):', '.append', 'for', 'for', ':' |  len(string) + 1[[):⏎]]        prefixes.append |
+| 6225 | -3.10 | 0.001 | 0.008 | '⏎', '⏎', '⏎', '⏎', '⏎' | ### Solution Code⏎'''python[[⏎]]def select_words |
+| 23994 | -2.78 | 0.002 | 0.018 | '.', '.', '.', '.', '.' | '''⏎⏎### Explanation⏎1[[.]] **Splitting |
+| 63082 | -2.70 | 0.013 | 0.029 | 'parse', 'def', 'def', 'def', 'def' |  the steps in code:⏎⏎Function[[ parse]]_nested_pare |
+| 41280 | -2.61 | 0.001 | 0.005 | '''', '''', '''', '''', '''' | (word)⏎    return result⏎[['']]'⏎⏎### Explanation |
+| 11149 | -2.58 | 0.005 | 0.025 | '(', '"', 'that', 'e', '=' | , 0]. The triplet[[ (]]1,-1 |
+| 3697 | -2.54 | 0.002 | 0.021 | '   ', 'es', '⏎', ']:', '   ' | :⏎⏎def sort_array(array):⏎[[   ]] if not array |
+| 8343 | -2.53 | 0.005 | 0.042 | 'collect', 'Identify', 'count', 'Compute', 'extract' |  the 2-dimensional list to[[ collect]] the coordinates of |
+| 54138 | -2.51 | 0.004 | 0.026 | '   ', '   ', '   ', '   ', '   ' |  minPath(grid, k):⏎[[   ]] """⏎    Given |
+| 26812 | -2.47 | 0.001 | 0.008 | ')', '⏎', ')', ')', '⏎' | ]⏎    ⏎    return tuple(result[[)⏎]]'''⏎⏎### |
+
+### Shared features between math and code
+
+- prompt_last: 0 of the top 10 features appear in both gsm8k_dev and humanevalplus_dev.
+- resp_mean: 0 of the top 10 features appear in both gsm8k_dev and humanevalplus_dev.
+
+### Reconstruction quality on our data
+
+How well this SAE reproduces the model's actual layer output on these generations (all tokens except BOS). Cosine 1.0 and relative error 0.0 would be perfect. L0 is the average number of features active per token.
+
+| benchmark | problems | mean cosine | mean relative error | mean L0 |
+|---|---|---|---|---|
+| gsm8k_dev | 200 | 0.838 | 0.306 | 98.3 |
+| humanevalplus_dev | 32 | 0.852 | 0.285 | 98.1 |
 
