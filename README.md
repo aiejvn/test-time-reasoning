@@ -81,7 +81,9 @@ papers/            - reference PDFs for the works cited in the proposal
 notebooks/         - Gemma SAE failure-mode experiments, one notebook per failure case (see below)
 src/sae_env.py     - shared helpers: load Gemma, hook the residual stream, load Gemma Scope SAEs, generate, pool features
 src/reasoning_env.py - DeepSeek-R1-Distill-Llama-8B: multi-layer activation extraction, intervention hooks, GSM8K/HumanEval+ eval
-experiments/baseline.py, configs/baseline.yaml - baseline (unchanged-model) run for the reasoning intervention experiment
+experiments/       - baseline.py, probe.py, intervene.py: reasoning intervention experiment (configs in configs/)
+coding_eval/       - Dockerized EvalPlus HumanEval+ evaluator (merged from jacobpowerr/qmind-coding-eval)
+reports/           - dated status reports with results
 requirements.txt   - pinned dependencies
 .env.example       - template for the local, gitignored .env (HF_TOKEN)
 LICENSE            - MIT
@@ -131,6 +133,23 @@ Grading: GSM8K takes the last `\boxed{}` after `</think>` (or the last number if
 checks for an exact numeric match. HumanEval+ takes the last ```` ```python ```` block after `</think>`
 and runs it against the base and plus tests in a subprocess with a 30 s timeout. A response truncated
 before it finishes counts as wrong.
+
+### Probes and interventions
+
+```bash
+python experiments/probe.py --config configs/probe.yaml                 # per-layer probes -> artifacts/probe/<run>/
+python experiments/intervene.py --config configs/intervene_sweep.yaml   # strength sweep on dev
+python experiments/intervene.py --config configs/intervene.yaml         # held-out: none / probe / random / ablate
+```
+
+`probe.py` fits a logistic regression per (layer, pool) that predicts answer correctness from baseline activations,
+reports cross-validated AUROC, and saves each probe's unit weight vector as a candidate direction. `intervene.py`
+steers or ablates along that direction at the best layer. It reruns the no-edit condition on the same problems with
+the same batching, and reports accuracy, length, truncation, fixed/broken flips, and an exact McNemar p-value. Results
+so far are in [reports/2026-11-20-reasoning-interventions.md](reports/2026-11-20-reasoning-interventions.md).
+
+`coding_eval/` is Jacob's Dockerized EvalPlus evaluator for saved HumanEval+ generations (see its README). It isn't
+wired to these outputs yet.
 
 ### Intervention interface
 
