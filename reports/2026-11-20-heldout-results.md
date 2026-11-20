@@ -9,3 +9,4 @@ Layer 29, α = [0.1] × 38.65 (median token norm), positions=all. Command: `pyth
 | gsm8k | probe_pos | 20 | 90.0% | 1421 | 10.0% | 0 / 0 | 1 |
 | gsm8k | random_pos | 20 | 95.0% | 1486 | 10.0% | 2 / 1 | 1 |
 | humanevalplus | none | 12 | 83.3% | 2354 | 16.7% | n/a | n/a |
+| humanevalplus | probe_ablate | 12 | 66.7% | 2438 | 25.0% | 0 / 2 | 0.5 |
