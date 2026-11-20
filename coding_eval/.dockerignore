@@ -1,0 +1,6 @@
+# Only the pinned dependencies and container entry point belong in this image.
+**
+!requirements.txt
+!docker/
+!docker/evalplus.Dockerfile
+!docker/worker.py
