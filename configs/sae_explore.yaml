@@ -1,0 +1,17 @@
+# SAE feature exploration on baseline dev generations, one SAE per run:
+#   python experiments/sae_explore.py --config configs/sae_explore.yaml -o sae=llamascope_l19
+model_id: deepseek-ai/DeepSeek-R1-Distill-Llama-8B
+baseline_dir: artifacts/baseline/baseline
+benchmarks: [gsm8k_dev, humanevalplus_dev]
+pools: [prompt_last, resp_mean]
+top_k: 10
+out_dir: artifacts/sae_explore
+sae: llamascope_l19
+saes:
+  # Llama Scope R1-Distill, 32k features, trained on 400M SlimPajama + 400M OpenR1-Math tokens
+  llamascope_l4:  {layer: 4,  release: llama_scope_r1_distill, sae_id: l4r_400m_slimpajama_400m_openr1_math,  neuronpedia: deepseek-r1-distill-llama-8b/4-llamascope-slimpj-openr1-res-32k}
+  llamascope_l19: {layer: 19, release: llama_scope_r1_distill, sae_id: l19r_400m_slimpajama_400m_openr1_math, neuronpedia: deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k}
+  llamascope_l29: {layer: 29, release: llama_scope_r1_distill, sae_id: l29r_400m_slimpajama_400m_openr1_math, neuronpedia: deepseek-r1-distill-llama-8b/29-llamascope-slimpj-openr1-res-32k}
+  llamascope_l30: {layer: 30, release: llama_scope_r1_distill, sae_id: l30r_400m_slimpajama_400m_openr1_math, neuronpedia: deepseek-r1-distill-llama-8b/30-llamascope-slimpj-openr1-res-32k}
+  # "I Have Covered All the Bases Here" (Galichin et al. 2025), 65k features, LMSYS + OpenThoughts
+  paper_l19: {layer: 19, repo: andreuka18/deepseek-r1-distill-llama-8b-lmsys-openthoughts, path: blocks.19.hook_resid_post}
