@@ -1,0 +1,28 @@
+# Baseline (unchanged model) run: python experiments/baseline.py --config configs/baseline.yaml
+# Override any key with -o, e.g. -o gen.max_new_tokens=512 -o benchmarks.gsm8k.n_dev=8
+run_name: baseline
+out_dir: artifacts/baseline          # gitignored
+model_id: deepseek-ai/DeepSeek-R1-Distill-Llama-8B
+seed: 0                              # fixes the dev/test split only; decoding below is greedy
+
+layers: [4, 19, 29, 30]              # zero-based decoder layers; activations saved at resid_post
+pools: [prompt_last, resp_mean]      # see reasoning_env.extract_activations
+extract_batch_size: 4
+
+prompt_variant: cot                  # cot | plain (plain drops "reason step by step"; input ablation)
+
+gen:
+  max_new_tokens: 4096               # responses hitting this are flagged truncated (and usually wrong)
+  batch_size: 8                      # 8 x ~4.3k tokens of KV cache fits beside the 16 GB model on an A10G
+  do_sample: false                   # greedy: deterministic, so baseline-vs-intervention flips are per-problem
+  temperature: 0.6                   # only used if do_sample
+
+benchmarks:                          # disjoint dev/test splits per benchmark (seeded shuffle)
+  gsm8k:         {n_dev: 200, n_test: 300}   # of 1319 test-set problems
+  humanevalplus: {n_dev: 64,  n_test: 99}    # of 163 problems (HumanEval/32 excluded: broken test)
+
+splits: [dev, test]
+
+wandb:
+  enabled: false
+  project: test-time-reasoning
