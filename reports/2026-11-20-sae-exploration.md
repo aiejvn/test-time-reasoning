@@ -1,6 +1,6 @@
 # SAE feature exploration: DeepSeek-R1-Distill-Llama-8B
 
-**Status:** 1 of 5 SAEs finished; still queued: Llama Scope, layer 19, Llama Scope, layer 29, Llama Scope, layer 30, Galichin et al. paper SAE, layer 19. This file is regenerated after each SAE finishes.
+**Status:** 2 of 5 SAEs finished; still queued: Llama Scope, layer 29, Llama Scope, layer 30, Galichin et al. paper SAE, layer 19. This file is regenerated after each SAE finishes.
 
 ## What this is
 
@@ -145,4 +145,91 @@ How well this SAE reproduces the model's actual layer output on these generation
 |---|---|---|---|---|
 | gsm8k_dev | 200 | 0.903 | 0.184 | 30.6 |
 | humanevalplus_dev | 32 | 0.879 | 0.226 | 31.6 |
+
+
+## llamascope_l19: layer 19, 32,768 features
+
+Llama Scope R1-Distill (OpenMOSS / fnlp): a sparse autoencoder trained on this model's layer output, on 400M tokens of general web text (SlimPajama) plus 400M tokens of R1-style math reasoning traces (OpenR1-Math-220k). Feature dashboards are on Neuronpedia.
+
+### gsm8k_dev, pooled at the last prompt token (the `<think>\n` position, before any reasoning is generated)
+
+n = 200 problems: 166 correct, 34 wrong.
+
+| feature | Cohen's d | mean act. (wrong) | mean act. (correct) | peak tokens | strongest context |
+|---|---|---|---|---|---|
+| [10679](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/10679) | -0.87 | 8.226 | 9.317 | 'Please', 'Please', '⏎', 'Please', '⏎' |  prevent the pipes from freezing?⏎[[Please]] reason step by |
+| [5612](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/5612) | -0.80 | 0.255 | 0.813 | ',', ',', ',', ',', ',' | boxed{}.<｜Assistant｜><think>⏎Okay[[,]] so I have |
+| [8303](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/8303) | +0.66 | 9.502 | 8.935 | 'Erin', 'doesn', 'doesn', 'doesn', '624' |  that again. Let E be[[ Erin]]'s current points |
+| [23964](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/23964) | -0.58 | 20.116 | 20.451 | '⏎', '⏎', '⏎', '⏎', '⏎' |  within \boxed{}.<｜Assistant｜><think>[[⏎]]Okay, so |
+| [23556](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/23556) | +0.58 | 15.641 | 15.056 | 'mosaic', 'Kylie', 'big', 'Jenna', 'Ginger' | 24 mosaic tiles. How many[[ mosaic]] tiles would Mr |
+| [25082](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/25082) | -0.54 | 4.449 | 4.994 | '⏎', '⏎', '⏎', 'Please', '⏎' |  within \boxed{}.<｜Assistant｜><think>[[⏎]]Okay, so |
+| [25984](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/25984) | +0.49 | 7.566 | 7.154 | '⏎', '⏎', '⏎', '⏎', '⏎' |  within \boxed{}.<｜Assistant｜><think>[[⏎]]Okay, so |
+| [24752](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/24752) | -0.47 | 0.159 | 0.357 | '⏎⏎', '⏎⏎', '⏎⏎', '⏎⏎', '⏎⏎' | {27} hours.⏎</think>[[⏎⏎]]First, we |
+| [18337](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/18337) | +0.43 | 0.101 | 0.000 | '.', '.', '.', '.', '.' |  many degrees the second bottle is[[.⏎⏎]]Hmm, let |
+| [16458](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/16458) | -0.41 | 0.497 | 0.820 | 'so', 'so', 'so', 'so', 'so' | {}.<｜Assistant｜><think>⏎Okay,[[ so]] I have this |
+
+### gsm8k_dev, pooled at the mean over all response tokens (reasoning + answer)
+
+n = 200 problems: 166 correct, 34 wrong.
+
+| feature | Cohen's d | mean act. (wrong) | mean act. (correct) | peak tokens | strongest context |
+|---|---|---|---|---|---|
+| [9010](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/9010) | -1.83 | 0.095 | 0.393 | ':', '\', ':', ':', '7' |  multiply both sides by 4[[:⏎⏎]]\[⏎N |
+| [31392](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/31392) | -1.82 | 0.007 | 0.023 | '-check', '-check', '-check', '-check', '-check' | 694.⏎⏎Let me just double[[-check]] my calculations to |
+| [9187](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/9187) | -1.81 | 0.005 | 0.016 | 'boxed', 'boxed', 'boxed', 'boxed', 'boxed' |  Tanya uses is \(\[[boxed]]{4}\ |
+| [19442](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/19442) | -1.80 | 0.014 | 0.037 | '.', '.', '.', '.', '.' |  $15 spent on lemons[[.⏎⏎]]**Final Answer |
+| [24752](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/24752) | -1.74 | 0.009 | 0.023 | '⏎⏎', '⏎⏎', '⏎⏎', '⏎⏎', '⏎⏎' | {27} hours.⏎</think>[[⏎⏎]]First, we |
+| [23335](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/23335) | -1.74 | 0.008 | 0.021 | '**', '**', '**', '**', '**' |  15.⏎⏎**Final Answer[[**⏎]]The average size |
+| [18510](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/18510) | -1.73 | 0.009 | 0.024 | '</think>', '</think>', '</think>', '</think>', '</think>' |  is \boxed{110}.⏎[[</think>]]⏎⏎Rome |
+| [20807](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/20807) | -1.73 | 0.006 | 0.016 | 'Okay', 'Okay', 'Okay', 'Okay', 'Okay' |  15 = 65⏎⏎[[Okay]], so now |
+| [6647](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/6647) | -1.73 | 0.009 | 0.026 | '**', '**', '**', '**', '**' | -star rows is 8.⏎⏎[[**]]Final Answer**⏎ |
+| [26755](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/26755) | -1.73 | 0.007 | 0.019 | 'Answer', 'Answer', 'Answer', 'Answer', 'Answer' |  is 12.⏎⏎**Final[[ Answer]]**⏎The total |
+
+### humanevalplus_dev, pooled at the last prompt token (the `<think>\n` position, before any reasoning is generated)
+
+n = 32 problems: 20 correct, 12 wrong.
+
+| feature | Cohen's d | mean act. (wrong) | mean act. (correct) | peak tokens | strongest context |
+|---|---|---|---|---|---|
+| [23556](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/23556) | +1.37 | 21.272 | 20.745 | '30', 'sum', '5', 'sum', 'Examples' | :⏎    is_multiply_prime([[30]]) == True |
+| [11036](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/11036) | +1.20 | 0.911 | 0.136 | '?', '.', '.', '.', '.' |  the correct way to model this[[?⏎⏎]]Wait, perhaps |
+| [13133](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/13133) | -1.12 | 2.097 | 2.263 | 'Okay', 'Okay', 'Okay', 'Okay', 'Okay' |     """⏎'''<｜Assistant｜><think>⏎[[Okay]], I need |
+| [8303](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/8303) | +0.99 | 17.727 | 17.245 | '⏎', '⏎', '⏎', '⏎', '⏎' | ]⏎    """⏎'''<｜Assistant｜><think>[[⏎]]Okay, I |
+| [24963](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/24963) | +0.98 | 0.871 | 0.220 | '5', 'through', 'select', '-', 'True' | 3, 4, [[5]]) == True |
+| [4219](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/4219) | +0.92 | 4.045 | 3.921 | '⏎', '⏎', '⏎', '⏎', '⏎' | '⏎    '''⏎'''<｜Assistant｜><think>[[⏎]]Okay, I |
+| [30835](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/30835) | +0.91 | 1.797 | 1.675 | 'the', ' ', '⏎', '⏎', '⏎' |  says "three distinct elements in[[ the]] list". So |
+| [22285](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/22285) | -0.86 | 1.709 | 2.079 | '⏎⏎', '⏎⏎', ')', '⏎⏎', '⏎⏎' | c]⏎    return min_path[[⏎⏎]]Wait, but |
+| [21897](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/21897) | -0.79 | 1.165 | 1.581 | ':', '**', 'So', ':', 'have' |  function can be as simple as[[:⏎⏎]]return (a |
+| [12996](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/12996) | +0.70 | 2.413 | 2.151 | 'doesn', 'lic', 'up', 'doesn', 'doesn' | ) is 2, which[[ doesn]]'t sum to |
+
+### humanevalplus_dev, pooled at the mean over all response tokens (reasoning + answer)
+
+n = 32 problems: 20 correct, 12 wrong.
+
+| feature | Cohen's d | mean act. (wrong) | mean act. (correct) | peak tokens | strongest context |
+|---|---|---|---|---|---|
+| [21639](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/21639) | -3.13 | 0.063 | 0.353 | '):', '=', '):', '):', 'return' | :⏎⏎def compare(game, guess[[):⏎]]    return [ |
+| [23081](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/23081) | -2.91 | 0.004 | 0.065 | 'by', 'is', 'exactly', 'equal', 'sorted' |  where the values at indices divisible[[ by]] three are sorted |
+| [13214](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/13214) | -2.83 | 0.108 | 0.401 | '[k', '(c', 'a', '',', '(key' |  for k in counts if counts[[[k]]] == max |
+| [19677](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/19677) | -2.79 | 0.000 | 0.003 | ''''', ''''', ''''', ''''', ''''' |  "Saturn")⏎    '''⏎[[''']]<｜Assistant｜><think>⏎ |
+| [30880](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/30880) | -2.64 | 0.001 | 0.010 | '.', '.', '.', '.', '.' |  remaining stock minus the amount eaten[[.⏎⏎]]This approach efficiently |
+| [12425](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/12425) | -2.53 | 0.004 | 0.032 | 'is', 'the', 'function', ',', 'is' | Wait, the initial code provided[[ is]] just the function |
+| [14528](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/14528) | -2.52 | 0.001 | 0.004 | '<think>', '<think>', '<think>', '<think>', '<think>' | 5⏎    """⏎'''<｜Assistant｜>[[<think>]]⏎Okay, |
+| [8376](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/8376) | -2.50 | 0.030 | 0.107 | ''', 'not', ''', 'i', 'code' |  'a' and 'b[[']] are added to |
+| [4400](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/4400) | -2.50 | 0.027 | 0.117 | 'w', 'c', 'str', '(string', '(text' |  will_it_fly(q,[[ w]]):⏎    # |
+| [1758](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/1758) | -2.44 | 0.141 | 1.149 | '.', ';', 'is', ',', 'is' |  sequence with a single hyphen[[.]] If the length |
+
+### Shared features between math and code
+
+- prompt_last: 2 of the top 10 features appear in both gsm8k_dev and humanevalplus_dev (8303, 23556).
+- resp_mean: 0 of the top 10 features appear in both gsm8k_dev and humanevalplus_dev.
+
+### Reconstruction quality on our data
+
+How well this SAE reproduces the model's actual layer output on these generations (all tokens except BOS). Cosine 1.0 and relative error 0.0 would be perfect. L0 is the average number of features active per token.
+
+| benchmark | problems | mean cosine | mean relative error | mean L0 |
+|---|---|---|---|---|
+| gsm8k_dev | 200 | 0.852 | 0.274 | 56.9 |
+| humanevalplus_dev | 32 | 0.816 | 0.333 | 66.6 |
 
