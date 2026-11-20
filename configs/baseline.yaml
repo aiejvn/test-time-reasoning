@@ -17,7 +17,8 @@ gen:
   do_sample: false                   # greedy: deterministic, so baseline-vs-intervention flips are per-problem
   temperature: 0.6                   # only used if do_sample
 
-benchmarks:                          # disjoint dev/test splits per benchmark (seeded shuffle)
+benchmarks:                          # disjoint dev/test splits per benchmark (seeded shuffle); optional `limit: N`
+                                     # runs only the first N problems of each split (splits themselves unchanged)
   gsm8k:         {n_dev: 200, n_test: 300}   # of 1319 test-set problems
   humanevalplus: {n_dev: 64,  n_test: 99}    # of 163 problems (HumanEval/32 excluded: broken test)
 
