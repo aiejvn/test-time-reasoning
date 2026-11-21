@@ -1,0 +1,14 @@
+{
+  "gsm8k_dev": {
+    "n": 200,
+    "accuracy": 0.83,
+    "mean_resp_tokens": 1429.22,
+    "truncated": 0.095
+  },
+  "humanevalplus_dev": {
+    "n": 32,
+    "accuracy": 0.625,
+    "mean_resp_tokens": 2656.65625,
+    "truncated": 0.375
+  }
+}

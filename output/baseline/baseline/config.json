@@ -1,0 +1,43 @@
+{
+  "run_name": "baseline",
+  "out_dir": "artifacts/baseline",
+  "model_id": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+  "seed": 0,
+  "layers": [
+    4,
+    19,
+    29,
+    30
+  ],
+  "pools": [
+    "prompt_last",
+    "resp_mean"
+  ],
+  "extract_batch_size": 4,
+  "prompt_variant": "cot",
+  "gen": {
+    "max_new_tokens": 4096,
+    "batch_size": 8,
+    "do_sample": false,
+    "temperature": 0.6
+  },
+  "benchmarks": {
+    "gsm8k": {
+      "n_dev": 200,
+      "n_test": 300
+    },
+    "humanevalplus": {
+      "n_dev": 64,
+      "n_test": 99,
+      "limit": 32
+    }
+  },
+  "splits": [
+    "dev"
+  ],
+  "wandb": {
+    "enabled": false,
+    "project": "test-time-reasoning"
+  },
+  "command": "/home/ubuntu/QMIND/test-time-reasoning/.venv/bin/python experiments/baseline.py --config configs/baseline.yaml -o 'splits=[dev]' -o benchmarks.humanevalplus.limit=32"
+}
