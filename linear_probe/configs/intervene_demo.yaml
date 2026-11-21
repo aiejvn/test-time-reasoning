@@ -1,0 +1,16 @@
+# Step 4b: held-out test, 3 conditions (no edit / probe steering / random control) -- feeds the output-focused demo.
+# alpha_fracs is set by experiments/run_demo_pipeline.sh from the tune_bs1 result.
+# python linear_probe/intervene.py --config linear_probe/configs/intervene_demo.yaml -o 'alpha_fracs=[<chosen>]'
+run_name: heldout_demo_bs1
+out_dir: artifacts/intervene
+baseline_config: configs/baseline.yaml
+probe_dir: artifacts/probe/gsm8k_dev_bs1
+pool: prompt_last
+layer: best
+positions: all
+random_seed: 1
+alpha_fracs: [null]                      # must be overridden
+conditions: [probe_pos, random_pos]
+evals:                                   # math first, then code transfer
+  - {benchmark: gsm8k, split: test, n: 100}
+  - {benchmark: humanevalplus, split: test, n: 50}

@@ -1,0 +1,15 @@
+# Step 3: steering-strength selection on the tune split (disjoint from dev, where the probe is trained, and from test).
+# Probe retrained on the batch-size-1 baseline with the fixed grader (linear_probe/REPORT.md audit 3a, 3b).
+# python linear_probe/intervene.py --config linear_probe/configs/intervene_tune.yaml
+run_name: tune_bs1
+out_dir: artifacts/intervene
+baseline_config: configs/baseline.yaml   # batch_size 1: batch-invariant greedy decoding
+probe_dir: artifacts/probe/gsm8k_dev_bs1
+pool: prompt_last
+layer: best                              # highest-CV-AUROC layer for prompt_last on dev
+positions: all
+random_seed: 1
+alpha_fracs: [0.1, 0.25, 0.5]
+conditions: [probe_pos]
+evals:
+  - {benchmark: gsm8k, split: tune, n: 100}
