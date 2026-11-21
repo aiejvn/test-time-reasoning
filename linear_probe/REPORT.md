@@ -352,7 +352,7 @@ SHA-256 of the files the direction came from:
 | `artifacts/baseline/baseline/gsm8k_dev_acts.pt` | `740da5d6c5d180fb4512efc4c4ed5e288d65ecfe32990f3387f0cce625e0516b` |
 | `artifacts/probe/gsm8k_dev/directions.pt` | `37d22d3dfc1c9d0e5cc196c8c9d991fac23c6e637cc55344fe90708dd499bf2c` |
 
-The `.pt` files are still gitignored, per AGENTS.md, and not yet on W&B or the HF Hub.
+These files, the probe directions and the reproduction outputs are committed under `artifacts/` (force-added past `.gitignore` at the team lead's request, overriding AGENTS.md). They are not on W&B or the HF Hub.
 
 **Caveat:** the direction is reproducible, but it was trained with 2 wrong labels (see 3b).
 
