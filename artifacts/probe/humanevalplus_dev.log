@@ -1,0 +1,10 @@
+humanevalplus_dev: n=32, correct=20, incorrect=12
+  prompt_last  L4   CV AUROC 0.646
+  prompt_last  L19  CV AUROC 0.717
+  prompt_last  L29  CV AUROC 0.771
+  prompt_last  L30  CV AUROC 0.758
+  resp_mean    L4   CV AUROC 0.896
+  resp_mean    L19  CV AUROC 0.913
+  resp_mean    L29  CV AUROC 0.892
+  resp_mean    L30  CV AUROC 0.896
+best (prompt_last): layer 29 CV AUROC 0.771 -> /home/ubuntu/QMIND/test-time-reasoning/artifacts/probe/humanevalplus_dev

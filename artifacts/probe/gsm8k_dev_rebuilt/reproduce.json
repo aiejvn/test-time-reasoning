@@ -1,0 +1,71 @@
+{
+  "command": "/home/ubuntu/QMIND/test-time-reasoning/.venv/bin/python linear_probe/reproduce_acts.py --responses output/baseline/baseline/gsm8k_dev.jsonl --saved-acts artifacts/baseline/baseline/gsm8k_dev_acts.pt --saved-probe artifacts/probe/gsm8k_dev --out artifacts/probe/gsm8k_dev_rebuilt",
+  "n": 200,
+  "retokenized_len_mismatch": 0,
+  "per": [
+    {
+      "pool": "prompt_last",
+      "layer": 4,
+      "direction_cosine": 0.9999999403953552,
+      "cv_auroc": 0.6484762579730686,
+      "saved_cv_auroc": 0.6484762579730686,
+      "act_max_abs_diff": 0.0
+    },
+    {
+      "pool": "prompt_last",
+      "layer": 19,
+      "direction_cosine": 1.0,
+      "cv_auroc": 0.702338766832034,
+      "saved_cv_auroc": 0.702338766832034,
+      "act_max_abs_diff": 0.0
+    },
+    {
+      "pool": "prompt_last",
+      "layer": 29,
+      "direction_cosine": 0.9999999403953552,
+      "cv_auroc": 0.7290928419560596,
+      "saved_cv_auroc": 0.7290928419560596,
+      "act_max_abs_diff": 0.0
+    },
+    {
+      "pool": "prompt_last",
+      "layer": 30,
+      "direction_cosine": 0.9999998807907104,
+      "cv_auroc": 0.7135010630758328,
+      "saved_cv_auroc": 0.7135010630758328,
+      "act_max_abs_diff": 0.0
+    },
+    {
+      "pool": "resp_mean",
+      "layer": 4,
+      "direction_cosine": 0.9999977946281433,
+      "cv_auroc": 0.8493975903614458,
+      "saved_cv_auroc": 0.8495747696669029,
+      "act_max_abs_diff": 0.001365572214126587
+    },
+    {
+      "pool": "resp_mean",
+      "layer": 19,
+      "direction_cosine": 0.9999996423721313,
+      "cv_auroc": 0.8518781006378454,
+      "saved_cv_auroc": 0.8518781006378454,
+      "act_max_abs_diff": 0.012875676155090332
+    },
+    {
+      "pool": "resp_mean",
+      "layer": 29,
+      "direction_cosine": 0.9999910593032837,
+      "cv_auroc": 0.8591424521615876,
+      "saved_cv_auroc": 0.8589652728561304,
+      "act_max_abs_diff": 0.04771355539560318
+    },
+    {
+      "pool": "resp_mean",
+      "layer": 30,
+      "direction_cosine": 0.9999883770942688,
+      "cv_auroc": 0.8625088589652727,
+      "saved_cv_auroc": 0.8625088589652727,
+      "act_max_abs_diff": 0.10578200221061707
+    }
+  ]
+}

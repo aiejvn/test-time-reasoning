@@ -1,0 +1,70 @@
+{
+  "config": {
+    "run_name": "gsm8k_dev_repro",
+    "out_dir": "artifacts/probe",
+    "baseline_dir": "artifacts/baseline/baseline",
+    "benchmark": "gsm8k",
+    "split": "dev",
+    "cv_folds": 5,
+    "C": 0.01,
+    "seed": 0,
+    "select_pool": "prompt_last"
+  },
+  "n": 200,
+  "n_correct": 166,
+  "results": {
+    "prompt_last/L4": {
+      "pool": "prompt_last",
+      "layer": 4,
+      "cv_auroc": 0.6484762579730686,
+      "n_splits": 5
+    },
+    "prompt_last/L19": {
+      "pool": "prompt_last",
+      "layer": 19,
+      "cv_auroc": 0.702338766832034,
+      "n_splits": 5
+    },
+    "prompt_last/L29": {
+      "pool": "prompt_last",
+      "layer": 29,
+      "cv_auroc": 0.7290928419560596,
+      "n_splits": 5
+    },
+    "prompt_last/L30": {
+      "pool": "prompt_last",
+      "layer": 30,
+      "cv_auroc": 0.7135010630758328,
+      "n_splits": 5
+    },
+    "resp_mean/L4": {
+      "pool": "resp_mean",
+      "layer": 4,
+      "cv_auroc": 0.8495747696669029,
+      "n_splits": 5
+    },
+    "resp_mean/L19": {
+      "pool": "resp_mean",
+      "layer": 19,
+      "cv_auroc": 0.8518781006378454,
+      "n_splits": 5
+    },
+    "resp_mean/L29": {
+      "pool": "resp_mean",
+      "layer": 29,
+      "cv_auroc": 0.8589652728561304,
+      "n_splits": 5
+    },
+    "resp_mean/L30": {
+      "pool": "resp_mean",
+      "layer": 30,
+      "cv_auroc": 0.8625088589652727,
+      "n_splits": 5
+    }
+  },
+  "best": {
+    "pool": "prompt_last",
+    "layer": 29,
+    "cv_auroc": 0.7290928419560596
+  }
+}

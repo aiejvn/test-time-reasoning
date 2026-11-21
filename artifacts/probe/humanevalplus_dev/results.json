@@ -1,0 +1,70 @@
+{
+  "config": {
+    "run_name": "humanevalplus_dev",
+    "out_dir": "artifacts/probe",
+    "baseline_dir": "artifacts/baseline/baseline",
+    "benchmark": "humanevalplus",
+    "split": "dev",
+    "cv_folds": 5,
+    "C": 0.01,
+    "seed": 0,
+    "select_pool": "prompt_last"
+  },
+  "n": 32,
+  "n_correct": 20,
+  "results": {
+    "prompt_last/L4": {
+      "pool": "prompt_last",
+      "layer": 4,
+      "cv_auroc": 0.6458333333333334,
+      "n_splits": 5
+    },
+    "prompt_last/L19": {
+      "pool": "prompt_last",
+      "layer": 19,
+      "cv_auroc": 0.7166666666666667,
+      "n_splits": 5
+    },
+    "prompt_last/L29": {
+      "pool": "prompt_last",
+      "layer": 29,
+      "cv_auroc": 0.7708333333333334,
+      "n_splits": 5
+    },
+    "prompt_last/L30": {
+      "pool": "prompt_last",
+      "layer": 30,
+      "cv_auroc": 0.7583333333333333,
+      "n_splits": 5
+    },
+    "resp_mean/L4": {
+      "pool": "resp_mean",
+      "layer": 4,
+      "cv_auroc": 0.8958333333333335,
+      "n_splits": 5
+    },
+    "resp_mean/L19": {
+      "pool": "resp_mean",
+      "layer": 19,
+      "cv_auroc": 0.9125000000000001,
+      "n_splits": 5
+    },
+    "resp_mean/L29": {
+      "pool": "resp_mean",
+      "layer": 29,
+      "cv_auroc": 0.8916666666666667,
+      "n_splits": 5
+    },
+    "resp_mean/L30": {
+      "pool": "resp_mean",
+      "layer": 30,
+      "cv_auroc": 0.8958333333333335,
+      "n_splits": 5
+    }
+  },
+  "best": {
+    "pool": "prompt_last",
+    "layer": 29,
+    "cv_auroc": 0.7708333333333334
+  }
+}

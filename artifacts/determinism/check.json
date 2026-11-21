@@ -1,0 +1,65 @@
+{
+  "command": "/home/ubuntu/QMIND/test-time-reasoning/.venv/bin/python experiments/check_determinism.py --n 8 --max-new-tokens 1024",
+  "n": 8,
+  "max_new_tokens": 1024,
+  "single_runs_identical": 8,
+  "batched_equals_single": 0,
+  "rows": [
+    {
+      "id": "gsm8k/1101",
+      "single_a_vs_single_b": null,
+      "batched_vs_single_a": 576,
+      "len_batched": 731,
+      "len_single": 827
+    },
+    {
+      "id": "gsm8k/120",
+      "single_a_vs_single_b": null,
+      "batched_vs_single_a": 61,
+      "len_batched": 1024,
+      "len_single": 809
+    },
+    {
+      "id": "gsm8k/474",
+      "single_a_vs_single_b": null,
+      "batched_vs_single_a": 539,
+      "len_batched": 1024,
+      "len_single": 1000
+    },
+    {
+      "id": "gsm8k/991",
+      "single_a_vs_single_b": null,
+      "batched_vs_single_a": 75,
+      "len_batched": 1024,
+      "len_single": 1024
+    },
+    {
+      "id": "gsm8k/192",
+      "single_a_vs_single_b": null,
+      "batched_vs_single_a": 77,
+      "len_batched": 1024,
+      "len_single": 1024
+    },
+    {
+      "id": "gsm8k/1020",
+      "single_a_vs_single_b": null,
+      "batched_vs_single_a": 186,
+      "len_batched": 613,
+      "len_single": 752
+    },
+    {
+      "id": "gsm8k/350",
+      "single_a_vs_single_b": null,
+      "batched_vs_single_a": 225,
+      "len_batched": 1024,
+      "len_single": 807
+    },
+    {
+      "id": "gsm8k/480",
+      "single_a_vs_single_b": null,
+      "batched_vs_single_a": 110,
+      "len_batched": 621,
+      "len_single": 608
+    }
+  ]
+}
