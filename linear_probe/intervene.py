@@ -115,8 +115,7 @@ def main():
     out = ROOT / cfg["out_dir"] / cfg["run_name"]
     out.mkdir(parents=True, exist_ok=True)
     model, tok = R.load_model(base_cfg["model_id"])
-    splits = {b: R.load_benchmark(b, s["n_dev"], s["n_test"], seed=base_cfg["seed"])
-              for b, s in base_cfg["benchmarks"].items()}
+    splits = {b: R.load_benchmark(b, ROOT / base_cfg["splits_file"]) for b in base_cfg["benchmarks"]}
     prompt_variant = base_cfg["prompt_variant"]
     norm = median_token_norm(model, tok, layer, splits["gsm8k"]["dev"], "gsm8k", prompt_variant)
     auroc = probe_results["results"][f"{cfg['pool']}/L{layer}"]["cv_auroc"]

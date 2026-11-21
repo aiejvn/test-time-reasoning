@@ -1,4 +1,4 @@
-# Strength sweep on dev problems (never the held-out split): python linear_probe/intervene.py --config linear_probe/configs/intervene_sweep.yaml
+# Strength sweep on the tune split (disjoint from the probe's dev training problems and from test): python linear_probe/intervene.py --config linear_probe/configs/intervene_sweep.yaml
 run_name: sweep_dev
 out_dir: artifacts/intervene
 baseline_config: configs/baseline.yaml
@@ -10,4 +10,4 @@ random_seed: 1
 alpha_fracs: [0.1, 0.25, 0.5]
 conditions: [probe_pos]
 evals:
-  - {benchmark: gsm8k, split: dev, n: 16}
+  - {benchmark: gsm8k, split: tune, n: 16}

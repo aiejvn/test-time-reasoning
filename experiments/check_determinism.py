@@ -42,7 +42,7 @@ def main():
     cmd = " ".join(shlex.quote(a) for a in [sys.executable] + sys.argv)
 
     model, tok = R.load_model()
-    items = R.load_benchmark("gsm8k", 200, 300, seed=0)["dev"][: args.n]
+    items = R.load_benchmark("gsm8k")["dev"][: args.n]
     convs = [[{"role": "user", "content": R.PROMPTS["gsm8k"]["cot"].format(question=it["question"])}] for it in items]
     run = lambda bs: sae_env.generate(model, tok, convs, max_new_tokens=args.max_new_tokens, batch_size=bs)  # noqa: E731
     batched, single_a, single_b = run(args.n), run(1), run(1)

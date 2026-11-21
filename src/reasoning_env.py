@@ -11,13 +11,14 @@ model-agnostic, so they're reused here rather than copied. What this module adds
 Intervention runs should go through `run_benchmark(..., edits=...)` so they use exactly the
 same prompts, batching, and decoding settings as the baseline.
 """
-import random
+import json
 import re
 import subprocess
 import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional
 
 import torch
@@ -173,10 +174,16 @@ PROMPTS = {
 HUMANEVALPLUS_BROKEN = {"HumanEval/32"}
 
 
-def load_benchmark(name: str, n_dev: int, n_test: int, seed: int = 0) -> Dict[str, List[dict]]:
-    """Deterministic, disjoint dev/test splits: {'dev': [...], 'test': [...]}, each item a dict with
-    id, question (raw problem text), and grading fields. dev is for layer/probe/strength selection,
-    test is held out for the final comparison."""
+SPLITS_FILE = Path(__file__).resolve().parent.parent / "configs/splits.json"
+
+
+def load_benchmark(name: str, splits_file=SPLITS_FILE) -> Dict[str, List[dict]]:
+    """The canonical, disjoint splits from configs/splits.json (written by experiments/make_splits.py):
+    {'dev': [...], 'tune': [...], 'test': [...]}, each item a dict with id, question (raw problem text), and
+    grading fields, in the file's order.
+
+    dev  = probe training (anything fitted to data); tune = layer / strength selection; test = held out for final
+    runs. coding_eval/data/splits.json is generated from the same file, so both use identical HumanEval+ splits."""
     from datasets import load_dataset
 
     if name == "gsm8k":
@@ -189,10 +196,9 @@ def load_benchmark(name: str, n_dev: int, n_test: int, seed: int = 0) -> Dict[st
                  for r in ds if r["task_id"] not in HUMANEVALPLUS_BROKEN]
     else:
         raise ValueError(name)
-    assert n_dev + n_test <= len(items), f"{name}: n_dev+n_test={n_dev + n_test} > {len(items)} problems"
-    perm = list(range(len(items)))
-    random.Random(seed).shuffle(perm)
-    return {"dev": [items[i] for i in perm[:n_dev]], "test": [items[i] for i in perm[n_dev:n_dev + n_test]]}
+    by_id = {it["id"]: it for it in items}
+    splits = json.load(open(splits_file))[name]
+    return {split: [by_id[i] for i in ids] for split, ids in splits.items()}
 
 
 def final_region(text: str) -> str:

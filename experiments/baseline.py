@@ -60,12 +60,12 @@ def main():
                          notes=cmd, tags=[cfg["model_id"], "baseline"])
 
     model, tok = R.load_model(cfg["model_id"])
-    data = {b: R.load_benchmark(b, s["n_dev"], s["n_test"], seed=cfg["seed"]) for b, s in cfg["benchmarks"].items()}
+    data = {b: R.load_benchmark(b, ROOT / cfg["splits_file"]) for b in cfg["benchmarks"]}
     summary = json.load(open(out / "summary.json")) if (out / "summary.json").exists() else {}
     for split in cfg["splits"]:  # split-major: every dev split finishes before any held-out test split
         for bench in data:
             # `limit` runs only the first N problems of each split without changing how splits are drawn
-            items, tag = data[bench][split][: cfg["benchmarks"][bench].get("limit")], f"{bench}_{split}"
+            items, tag = data[bench][split][: (cfg["benchmarks"][bench] or {}).get("limit")], f"{bench}_{split}"
             if (out / f"{tag}_acts.pt").exists():
                 print(f"[{tag}] already done, skipping (delete {out / tag}* to rerun)", flush=True)
                 continue

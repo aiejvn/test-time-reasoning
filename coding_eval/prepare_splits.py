@@ -1,44 +1,19 @@
+"""data/splits.json is generated from the project's canonical splits; don't draw a separate split here.
 
-import json
-import random
+Until 2026-11-21 this script drew its own HumanEval+ split (seed 2026: 20 development / 40 held-out), which
+overlapped the split the probe and intervention runs used: 7 of the probe's 32 training problems were in its
+held-out set. Both now come from configs/splits.json:
+
+    development = humanevalplus dev + tune (64 task IDs)
+    held_out    = humanevalplus test      (99 task IDs)
+
+To regenerate, run from the repo root:
+
+    python experiments/make_splits.py
+"""
+import subprocess
+import sys
 from pathlib import Path
-from evalplus.data import get_human_eval_plus
 
-SEED = 2026
-N_DEV = 20
-N_TEST = 40
-
-problems = get_human_eval_plus()
-
-# Sort numerically before shuffling
-task_ids = sorted(
-    problems.keys(),
-    key=lambda x: int(x.split("/")[-1])
-)
-
-# Reproducible random selection
-rng = random.Random(SEED)
-rng.shuffle(task_ids)
-
-dev_ids = task_ids[:N_DEV]
-test_ids = task_ids[N_DEV:N_DEV + N_TEST]
-
-assert set(dev_ids).isdisjoint(test_ids)
-
-splits = {
-    "benchmark": "HumanEval+",
-    "seed": SEED,
-    "development": dev_ids,
-    "held_out": test_ids,
-}
-
-output = Path("data/splits.json")
-output.parent.mkdir(exist_ok=True)
-
-with output.open("w") as f:
-    json.dump(splits, f, indent=2)
-
-print(f"Development problems: {len(dev_ids)}")
-print(f"Held-out problems: {len(test_ids)}")
-print(f"Saved to: {output}")
-print(f"Example development ID: {dev_ids[0]}")
+ROOT = Path(__file__).resolve().parent.parent
+subprocess.run([sys.executable, str(ROOT / "experiments/make_splits.py")], check=True)

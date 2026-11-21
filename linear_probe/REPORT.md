@@ -402,10 +402,30 @@ results were not regraded or rerun. With the fix applied:
 - **Two HumanEval+ splits.** `src/reasoning_env.py` draws dev/test with seed 0 (64/99).
   `coding_eval/data/splits.json` draws development/held-out with seed 2026 (20/40). The probe was trained on our 32
   dev problems, and 7 of them are in `coding_eval`'s held-out set. A result can't be "held out" under both splits
-  at once. One split must be made canonical; that is a team decision and isn't changed here.
+  at once. **Fixed** (see [Splits](#splits-fixed-2026-11-21)).
 - **Not graded with EvalPlus.** HumanEval+ was graded by our in-process subprocess runner. It was not graded by the
   Dockerized EvalPlus harness in `coding_eval/`, which needs an exporter to the manifest/samples format.
 - **Sample size.** 12 test problems.
+
+### Splits (fixed 2026-11-21)
+
+Two problems are fixed. The strength sweep tuned on 16 GSM8K dev problems that were also in the probe's training set,
+and there were two conflicting HumanEval+ splits.
+
+**Changed:** [`experiments/make_splits.py`](../experiments/make_splits.py) writes one canonical set of splits as
+explicit ID lists in [`configs/splits.json`](../configs/splits.json), with three splits per benchmark:
+
+| benchmark | dev (probe training) | tune (layer / strength selection) | test (held out) |
+|---|---|---|---|
+| GSM8K | 200 (unchanged) | 100 (new) | 300 (unchanged) |
+| HumanEval+ | 32 (the 32 the baseline ran) | 32 (the rest of the old dev) | 99 (unchanged) |
+
+- **Same rule as before:** the old seed-0 shuffle is reproduced exactly, so every existing result stays inside the
+  split it was run on. The script asserts this.
+- **Callers:** `reasoning_env.load_benchmark` now reads this file.
+- **`coding_eval/`:** `coding_eval/data/splits.json` is generated from the same file (development = dev + tune,
+  held_out = test). That replaces its own seed-2026 split.
+- **Sweep:** `intervene_sweep.yaml` now tunes on `tune`. The old sweep's 16 problems are not in `tune`.
 
 ### 4. Held-out probe test
 

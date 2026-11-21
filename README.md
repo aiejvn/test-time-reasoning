@@ -100,7 +100,7 @@ direction has a causal effect beyond just disturbing the model. That comparison 
   unit tests in a subprocess.
 - **Prompting:** both use DeepSeek's recommended "Please reason step by step" prompt with greedy decoding, up to 4096
   new tokens.
-- **Splits:** problems are split, with a fixed seed, into **dev** (used to build and tune things) and **test** (held
+- **Splits:** problems are split into **dev** (probe training), **tune** (choosing layer and strength) and **test** (held
   out for the final check).
 
 #### Step 2. Baseline ([`experiments/baseline.py`](experiments/baseline.py))
@@ -185,7 +185,7 @@ Full tables, every problem's outcome under every condition, and caveats are in
 
 Jacob's evaluator, merged from `jacobpowerr/qmind-coding-eval`. It grades saved HumanEval+ outputs with the official
 EvalPlus harness inside a locked-down Docker container and compares baseline against intervention runs. It isn't
-connected to our outputs yet. It uses its own splits (20 dev / 40 held-out) and its own input format, so an exporter
+connected to our outputs yet. Its HumanEval+ split is now generated from the project's `configs/splits.json`, but it uses its own input format, so an exporter
 is needed.
 
 ### Not done yet
@@ -201,7 +201,6 @@ is needed.
   ([`linear_probe/self_correction_events.py`](linear_probe/self_correction_events.py)); it found no automatically
   labelable genuine corrections in the 200 GSM8K dev traces.
 - **Batch-size-1 baseline and rerun of steps 3–4**, with the fixed grader.
-- **One canonical HumanEval+ split** shared by `src/reasoning_env.py` and `coding_eval/`.
 
 ### Where things are
 
@@ -226,7 +225,7 @@ import sys; sys.path.insert(0, "src")
 import reasoning_env as R
 
 model, tok = R.load_model()                                   # DeepSeek-R1-Distill-Llama-8B, bf16, cuda
-items = R.load_benchmark("gsm8k", n_dev=200, n_test=300)["dev"][:8]
+items = R.load_benchmark("gsm8k")["dev"][:8]
 
 # Generate and grade. rows: id, correct, pred, n_resp_tokens, truncated, ...; gens: prompt_ids, resp_ids, text
 rows, gens = R.run_benchmark(model, tok, "gsm8k", items)
@@ -267,8 +266,8 @@ python linear_probe/intervene.py --config linear_probe/configs/intervene.yaml   
   `-o benchmarks.humanevalplus.limit=32` to run only the first 32 problems of each split.
 - **Resuming:** runs pick up where they left off.
 - **Launch commands:** each run's exact command is saved next to its outputs in `artifacts/`.
-- **Smoke test:** `python experiments/baseline.py -o run_name=smoke -o 'splits=[dev]' -o benchmarks.gsm8k.n_dev=8 -o
-  benchmarks.humanevalplus.n_dev=8`, about 7 minutes.
+- **Smoke test:** `python experiments/baseline.py -o run_name=smoke -o 'splits=[dev]' -o benchmarks.gsm8k.limit=8 -o
+  benchmarks.humanevalplus.limit=8`, about 7 minutes.
 
 ## Project overview
 

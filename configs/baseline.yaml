@@ -1,9 +1,10 @@
 # Baseline (unchanged model) run: python experiments/baseline.py --config configs/baseline.yaml
-# Override any key with -o, e.g. -o gen.max_new_tokens=512 -o benchmarks.gsm8k.n_dev=8
+# Override any key with -o, e.g. -o gen.max_new_tokens=512 -o benchmarks.gsm8k.limit=8
 run_name: baseline
 out_dir: artifacts/baseline          # gitignored
 model_id: deepseek-ai/DeepSeek-R1-Distill-Llama-8B
-seed: 0                              # fixes the dev/test split only; decoding below is greedy
+seed: 0                              # recorded only; decoding below is greedy, splits come from splits_file
+splits_file: configs/splits.json     # canonical dev/tune/test IDs (experiments/make_splits.py); shared with coding_eval/
 
 layers: [4, 19, 29, 30]              # zero-based decoder layers; activations saved at resid_post
 pools: [prompt_last, resp_mean]      # see reasoning_env.extract_activations
@@ -17,10 +18,9 @@ gen:
   do_sample: false                   # greedy: deterministic, so baseline-vs-intervention flips are per-problem
   temperature: 0.6                   # only used if do_sample
 
-benchmarks:                          # disjoint dev/test splits per benchmark (seeded shuffle); optional `limit: N`
-                                     # runs only the first N problems of each split (splits themselves unchanged)
-  gsm8k:         {n_dev: 200, n_test: 300}   # of 1319 test-set problems
-  humanevalplus: {n_dev: 64,  n_test: 99}    # of 163 problems (HumanEval/32 excluded: broken test)
+benchmarks:                          # optional `limit: N` runs only the first N problems of each split
+  gsm8k:         {}                  # dev 200 / tune 100 / test 300 of 1319 test-set problems
+  humanevalplus: {}                  # dev 32 / tune 32 / test 99 of 163 (HumanEval/32 excluded: broken test)
 
 splits: [dev, test]
 
