@@ -81,6 +81,13 @@ n = 200 problems: 166 correct, 34 wrong.
 | [4735](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/4-llamascope-slimpj-openr1-res-32k/4735) | +0.41 | 0.165 | 0.024 | '⏎⏎', '⏎⏎', '⏎⏎', '⏎⏎', '⏎⏎' |  \boxed{5}.⏎</think>[[⏎⏎]]Let \( B |
 | [8070](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/4-llamascope-slimpj-openr1-res-32k/8070) | +0.38 | 0.187 | 0.032 | 'value', 'Please', 'Please', 'Please', 'Please' | , if I use the present[[ value]] formula:⏎⏎\[ |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### gsm8k_dev, pooled at the mean over all response tokens (reasoning + answer)
 
 n = 200 problems: 166 correct, 34 wrong.
@@ -97,6 +104,13 @@ n = 200 problems: 166 correct, 34 wrong.
 | [5821](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/4-llamascope-slimpj-openr1-res-32k/5821) | -1.74 | 0.009 | 0.023 | 'Okay', 'Okay', 'Okay', 'Okay', 'Okay' |  \boxed{}.<｜Assistant｜><think>⏎[[Okay]], so Ben |
 | [1243](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/4-llamascope-slimpj-openr1-res-32k/1243) | -1.73 | 0.002 | 0.005 | '**', '**', '**', '**', '**' |  $120.⏎⏎**Final Answer[[**⏎]]Jack has \ |
 | [22830](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/4-llamascope-slimpj-openr1-res-32k/22830) | -1.73 | 0.006 | 0.013 | ',', ',', ',', ',', ',' | boxed{}.<｜Assistant｜><think>⏎Okay[[,]] so I have |
+
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
 
 ### humanevalplus_dev, pooled at the last prompt token (the `<think>\n` position, before any reasoning is generated)
 
@@ -115,6 +129,13 @@ n = 32 problems: 20 correct, 12 wrong.
 | [3481](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/4-llamascope-slimpj-openr1-res-32k/3481) | -0.53 | 0.250 | 0.617 | '⏎⏎', 'as', '",', '.', '⏎⏎' | , code steps:⏎⏎import math[[⏎⏎]]def largest_prime |
 | [13985](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/4-llamascope-slimpj-openr1-res-32k/13985) | +0.52 | 16.448 | 16.101 | ',', ':', '-', ' ', ' ' | 1". For N=150[[,]] the sum is |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### humanevalplus_dev, pooled at the mean over all response tokens (reasoning + answer)
 
 n = 32 problems: 20 correct, 12 wrong.
@@ -132,6 +153,13 @@ n = 32 problems: 20 correct, 12 wrong.
 | [15146](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/4-llamascope-slimpj-openr1-res-32k/15146) | -2.55 | 0.000 | 0.001 | '⏎', '⏎', '⏎', 'def', '⏎' | ### Solution Code⏎'''python[[⏎]]def select_words |
 | [3963](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/4-llamascope-slimpj-openr1-res-32k/3963) | -2.54 | 0.000 | 0.004 | ''', ''', ''', ''', ''' | ) == 3⏎''[['⏎⏎]]### Explanation⏎ |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### Shared features between math and code
 
 - prompt_last: 1 of the top 10 features appear in both gsm8k_dev and humanevalplus_dev (13985).
@@ -146,6 +174,10 @@ How well this SAE reproduces the model's actual layer output on these generation
 | gsm8k_dev | 200 | 0.903 | 0.184 | 30.6 |
 | humanevalplus_dev | 32 | 0.879 | 0.226 | 31.6 |
 
+*Terms:*
+- **mean cosine:** how closely the SAE's rebuilt vector points the same way as the real one, where 1 = identical.
+- **mean relative error:** the share of the vector's size the SAE fails to rebuild, where 0 = perfect.
+- **mean L0:** the average number of features active per token.
 
 ## llamascope_l19: layer 19, 32,768 features
 
@@ -168,6 +200,13 @@ n = 200 problems: 166 correct, 34 wrong.
 | [18337](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/18337) | +0.43 | 0.101 | 0.000 | '.', '.', '.', '.', '.' |  many degrees the second bottle is[[.⏎⏎]]Hmm, let |
 | [16458](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/16458) | -0.41 | 0.497 | 0.820 | 'so', 'so', 'so', 'so', 'so' | {}.<｜Assistant｜><think>⏎Okay,[[ so]] I have this |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### gsm8k_dev, pooled at the mean over all response tokens (reasoning + answer)
 
 n = 200 problems: 166 correct, 34 wrong.
@@ -184,6 +223,13 @@ n = 200 problems: 166 correct, 34 wrong.
 | [20807](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/20807) | -1.73 | 0.006 | 0.016 | 'Okay', 'Okay', 'Okay', 'Okay', 'Okay' |  15 = 65⏎⏎[[Okay]], so now |
 | [6647](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/6647) | -1.73 | 0.009 | 0.026 | '**', '**', '**', '**', '**' | -star rows is 8.⏎⏎[[**]]Final Answer**⏎ |
 | [26755](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/26755) | -1.73 | 0.007 | 0.019 | 'Answer', 'Answer', 'Answer', 'Answer', 'Answer' |  is 12.⏎⏎**Final[[ Answer]]**⏎The total |
+
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
 
 ### humanevalplus_dev, pooled at the last prompt token (the `<think>\n` position, before any reasoning is generated)
 
@@ -202,6 +248,13 @@ n = 32 problems: 20 correct, 12 wrong.
 | [21897](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/21897) | -0.79 | 1.165 | 1.581 | ':', '**', 'So', ':', 'have' |  function can be as simple as[[:⏎⏎]]return (a |
 | [12996](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/12996) | +0.70 | 2.413 | 2.151 | 'doesn', 'lic', 'up', 'doesn', 'doesn' | ) is 2, which[[ doesn]]'t sum to |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### humanevalplus_dev, pooled at the mean over all response tokens (reasoning + answer)
 
 n = 32 problems: 20 correct, 12 wrong.
@@ -219,6 +272,13 @@ n = 32 problems: 20 correct, 12 wrong.
 | [4400](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/4400) | -2.50 | 0.027 | 0.117 | 'w', 'c', 'str', '(string', '(text' |  will_it_fly(q,[[ w]]):⏎    # |
 | [1758](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/19-llamascope-slimpj-openr1-res-32k/1758) | -2.44 | 0.141 | 1.149 | '.', ';', 'is', ',', 'is' |  sequence with a single hyphen[[.]] If the length |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### Shared features between math and code
 
 - prompt_last: 2 of the top 10 features appear in both gsm8k_dev and humanevalplus_dev (8303, 23556).
@@ -233,6 +293,10 @@ How well this SAE reproduces the model's actual layer output on these generation
 | gsm8k_dev | 200 | 0.852 | 0.274 | 56.9 |
 | humanevalplus_dev | 32 | 0.816 | 0.333 | 66.6 |
 
+*Terms:*
+- **mean cosine:** how closely the SAE's rebuilt vector points the same way as the real one, where 1 = identical.
+- **mean relative error:** the share of the vector's size the SAE fails to rebuild, where 0 = perfect.
+- **mean L0:** the average number of features active per token.
 
 ## llamascope_l29: layer 29, 32,768 features
 
@@ -255,6 +319,13 @@ n = 200 problems: 166 correct, 34 wrong.
 | [655](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/29-llamascope-slimpj-openr1-res-32k/655) | +0.62 | 7.491 | 6.930 | '⏎', '⏎', '⏎', '⏎', '⏎' |  within \boxed{}.<｜Assistant｜><think>[[⏎]]Okay, so |
 | [22422](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/29-llamascope-slimpj-openr1-res-32k/22422) | -0.53 | 5.478 | 5.704 | ':', '"', '"', '"', '"' | .⏎⏎Plugging in the numbers[[:⏎⏎]]Total matches = |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### gsm8k_dev, pooled at the mean over all response tokens (reasoning + answer)
 
 n = 200 problems: 166 correct, 34 wrong.
@@ -271,6 +342,13 @@ n = 200 problems: 166 correct, 34 wrong.
 | [18520](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/29-llamascope-slimpj-openr1-res-32k/18520) | -1.76 | 0.006 | 0.016 | 'double', 'double', 'double', 'double', 'double' | imeters.⏎⏎Wait, let me[[ double]]-check my calculations |
 | [29780](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/29-llamascope-slimpj-openr1-res-32k/29780) | -1.76 | 0.003 | 0.009 | '**', '**', '**', '**', '**' |  15.⏎⏎**Final Answer[[**⏎]]The average size |
 | [2219](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/29-llamascope-slimpj-openr1-res-32k/2219) | -1.75 | 0.008 | 0.022 | '{', '{', '{', '{', '{' |  Answer**⏎Jeff gets \boxed[[{]]80} dollars |
+
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
 
 ### humanevalplus_dev, pooled at the last prompt token (the `<think>\n` position, before any reasoning is generated)
 
@@ -289,6 +367,13 @@ n = 32 problems: 20 correct, 12 wrong.
 | [3957](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/29-llamascope-slimpj-openr1-res-32k/3957) | -0.68 | 1.245 | 1.530 | 'in', 'in', 'in', 'in', 'in' | ]⏎⏎Wait, but wait:[[ in]] the sample, |
 | [27762](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/29-llamascope-slimpj-openr1-res-32k/27762) | -0.66 | 0.510 | 1.010 | 'in', 'in', 'in', 'in', 'in' | , else a float.⏎⏎But[[ in]] Python,  |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### humanevalplus_dev, pooled at the mean over all response tokens (reasoning + answer)
 
 n = 32 problems: 20 correct, 12 wrong.
@@ -306,6 +391,13 @@ n = 32 problems: 20 correct, 12 wrong.
 | [3003](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/29-llamascope-slimpj-openr1-res-32k/3003) | -2.39 | 0.000 | 0.001 | '1', '1', '1', '1', '1' |  each row.⏎⏎### Approach⏎[[1]]. **Collect |
 | [25707](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/29-llamascope-slimpj-openr1-res-32k/25707) | -2.39 | 0.003 | 0.009 | '2', '2', '2', '2', '2' |  if q is a palindrome.⏎[[2]]. If not |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### Shared features between math and code
 
 - prompt_last: 1 of the top 10 features appear in both gsm8k_dev and humanevalplus_dev (22422).
@@ -320,6 +412,10 @@ How well this SAE reproduces the model's actual layer output on these generation
 | gsm8k_dev | 200 | 0.858 | 0.262 | 40.4 |
 | humanevalplus_dev | 32 | 0.828 | 0.312 | 44.6 |
 
+*Terms:*
+- **mean cosine:** how closely the SAE's rebuilt vector points the same way as the real one, where 1 = identical.
+- **mean relative error:** the share of the vector's size the SAE fails to rebuild, where 0 = perfect.
+- **mean L0:** the average number of features active per token.
 
 ## llamascope_l30: layer 30, 32,768 features
 
@@ -342,6 +438,13 @@ n = 200 problems: 166 correct, 34 wrong.
 | [31794](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/30-llamascope-slimpj-openr1-res-32k/31794) | -0.46 | 0.216 | 0.525 | '⏎⏎', '⏎⏎', '.', ']', '.' | :⏎⏎5B = 100[[⏎⏎]]To find the |
 | [8722](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/30-llamascope-slimpj-openr1-res-32k/8722) | +0.43 | 3.860 | 3.702 | ' ', 'didn', ' ', ' ', ' ' | 16 = 4(S -[[ ]]16)⏎⏎Okay |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### gsm8k_dev, pooled at the mean over all response tokens (reasoning + answer)
 
 n = 200 problems: 166 correct, 34 wrong.
@@ -358,6 +461,13 @@ n = 200 problems: 166 correct, 34 wrong.
 | [14240](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/30-llamascope-slimpj-openr1-res-32k/14240) | -1.74 | 0.007 | 0.018 | '**', '**', '**', '**', '**' |  is 20 millimeters.⏎⏎[[**]]Final Answer**⏎ |
 | [32190](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/30-llamascope-slimpj-openr1-res-32k/32190) | -1.73 | 0.007 | 0.020 | 'boxed', 'boxed', 'boxed', 'boxed', 'boxed' |  maximum number of boxes is \[[boxed]]{83}.⏎ |
 | [10589](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/30-llamascope-slimpj-openr1-res-32k/10589) | -1.72 | 0.005 | 0.016 | ']', '.', ']', ']', ']' |  \text{ pounds}⏎\[[]⏎⏎]]Thus, the |
+
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
 
 ### humanevalplus_dev, pooled at the last prompt token (the `<think>\n` position, before any reasoning is generated)
 
@@ -376,6 +486,13 @@ n = 32 problems: 20 correct, 12 wrong.
 | [30545](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/30-llamascope-slimpj-openr1-res-32k/30545) | -0.47 | 0.859 | 1.125 | '.', '.', '.', '.', '.' |  function in a '''python block[[.⏎⏎]]'''python⏎⏎ |
 | [20780](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/30-llamascope-slimpj-openr1-res-32k/20780) | +0.41 | 0.130 | 0.000 | 'So', 'is', 'the', '.', 'the' | +8=1000.[[ So]] binary is  |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### humanevalplus_dev, pooled at the mean over all response tokens (reasoning + answer)
 
 n = 32 problems: 20 correct, 12 wrong.
@@ -393,6 +510,13 @@ n = 32 problems: 20 correct, 12 wrong.
 | [1783](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/30-llamascope-slimpj-openr1-res-32k/1783) | -2.34 | 0.003 | 0.014 | '2', '2', '2', '2', '2' |  if q is a palindrome.⏎[[2]]. If not |
 | [30490](https://www.neuronpedia.org/deepseek-r1-distill-llama-8b/30-llamascope-slimpj-openr1-res-32k/30490) | -2.33 | 0.006 | 0.040 | 'str', 'str', 'else', '=True', 'list' | ⏎def flip_case(string:[[ str]]) -> str |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### Shared features between math and code
 
 - prompt_last: 1 of the top 10 features appear in both gsm8k_dev and humanevalplus_dev (8427).
@@ -407,6 +531,10 @@ How well this SAE reproduces the model's actual layer output on these generation
 | gsm8k_dev | 200 | 0.867 | 0.246 | 32.9 |
 | humanevalplus_dev | 32 | 0.840 | 0.292 | 37.1 |
 
+*Terms:*
+- **mean cosine:** how closely the SAE's rebuilt vector points the same way as the real one, where 1 = identical.
+- **mean relative error:** the share of the vector's size the SAE fails to rebuild, where 0 = perfect.
+- **mean L0:** the average number of features active per token.
 
 ## paper_l19: layer 19, 65,536 features
 
@@ -429,6 +557,13 @@ n = 200 problems: 166 correct, 34 wrong.
 | 5068 | -0.59 | 0.005 | 0.097 | 'Adam', 'they', ',', ',', 'I' | <｜Assistant｜><think>⏎Okay, so[[ Adam]] really wants to |
 | 24459 | -0.58 | 16.889 | 17.343 | 'didn', 'didn', 'didn', 'didn', 'didn' |  my calculations to make sure I[[ didn]]'t make a |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### gsm8k_dev, pooled at the mean over all response tokens (reasoning + answer)
 
 n = 200 problems: 166 correct, 34 wrong.
@@ -445,6 +580,13 @@ n = 200 problems: 166 correct, 34 wrong.
 | 27314 | -1.73 | 0.001 | 0.004 | '</think>', '</think>', '</think>', '</think>', '</think>' |  potato salad to the picnic.⏎[[</think>]]⏎⏎Ted the |
 | 40536 | -1.72 | 0.011 | 0.029 | 'Answer', 'Answer', 'Answer', 'Answer', 'Answer' |  68 degrees.⏎⏎**Final[[ Answer]]**⏎The second |
 | 20400 | -1.72 | 0.010 | 0.028 | '}', '}.', '}.', '}.', '}.' |  Answer**⏎\boxed{6[[}⏎]]</think>⏎⏎Michael |
+
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
 
 ### humanevalplus_dev, pooled at the last prompt token (the `<think>\n` position, before any reasoning is generated)
 
@@ -463,6 +605,13 @@ n = 32 problems: 20 correct, 12 wrong.
 | 7120 | +1.36 | 0.529 | 0.289 | ',', '],', '⏎', '⏎', '⏎' |  a bucket capacity of 3[[,]] you can take |
 | 20950 | +1.36 | 0.494 | 0.331 | 'element', 'So', 'are', ',', 'Largest' | , etc. So the first[[ element]] in 'to |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### humanevalplus_dev, pooled at the mean over all response tokens (reasoning + answer)
 
 n = 32 problems: 20 correct, 12 wrong.
@@ -480,6 +629,13 @@ n = 32 problems: 20 correct, 12 wrong.
 | 54138 | -2.51 | 0.004 | 0.026 | '   ', '   ', '   ', '   ', '   ' |  minPath(grid, k):⏎[[   ]] """⏎    Given |
 | 26812 | -2.47 | 0.001 | 0.008 | ')', '⏎', ')', ')', '⏎' | ]⏎    ⏎    return tuple(result[[)⏎]]'''⏎⏎### |
 
+*Terms:*
+- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.
+- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on wrong answers.
+- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.
+- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.
+- **strongest context:** the surrounding text at its single strongest firing, with the peak token in [[brackets]] and ⏎ for newlines.
+
 ### Shared features between math and code
 
 - prompt_last: 0 of the top 10 features appear in both gsm8k_dev and humanevalplus_dev.
@@ -494,3 +650,7 @@ How well this SAE reproduces the model's actual layer output on these generation
 | gsm8k_dev | 200 | 0.838 | 0.306 | 98.3 |
 | humanevalplus_dev | 32 | 0.852 | 0.285 | 98.1 |
 
+*Terms:*
+- **mean cosine:** how closely the SAE's rebuilt vector points the same way as the real one, where 1 = identical.
+- **mean relative error:** the share of the vector's size the SAE fails to rebuild, where 0 = perfect.
+- **mean L0:** the average number of features active per token.

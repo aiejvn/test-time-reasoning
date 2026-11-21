@@ -74,6 +74,43 @@ reconstruction is poor, feature activations may not reflect what the model is ac
 """
 
 
+FEATURE_HEADER = "| feature | Cohen's d | mean act. (wrong) | mean act. (correct) | peak tokens | strongest context |"
+FEATURE_TERMS = (
+    "*Terms:*\n"
+    "- **feature:** the SAE feature's index, linked to its Neuronpedia dashboard where one exists.\n"
+    "- **Cohen's d:** the gap between wrong and correct averages in standard-deviation units; positive = higher on "
+    "wrong answers.\n"
+    "- **mean act.:** the feature's average activation in each group, where 0 = rarely fires.\n"
+    "- **peak tokens:** the token where the feature fires hardest, in each of its 5 strongest problems.\n"
+    "- **strongest context:** the surrounding text at its single strongest firing, with the peak token in "
+    "[[brackets]] and ⏎ for newlines.\n")
+RECON_HEADER = "| benchmark | problems | mean cosine | mean relative error | mean L0 |"
+RECON_TERMS = (
+    "*Terms:*\n"
+    "- **mean cosine:** how closely the SAE's rebuilt vector points the same way as the real one, where 1 = identical.\n"
+    "- **mean relative error:** the share of the vector's size the SAE fails to rebuild, where 0 = perfect.\n"
+    "- **mean L0:** the average number of features active per token.\n")
+
+
+def with_terms(summary: str) -> str:
+    """Put a short terms legend directly under every table header block in a per-SAE summary."""
+    out, lines = [], summary.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        if line in (FEATURE_HEADER, RECON_HEADER):
+            terms = FEATURE_TERMS if line == FEATURE_HEADER else RECON_TERMS
+            i += 1
+            while i < len(lines) and lines[i].startswith("|"):   # copy the table body
+                out.append(lines[i])
+                i += 1
+            out += ["", terms.rstrip("\n")]
+            continue
+        i += 1
+    return "\n".join(out)
+
+
 def main():
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "reports/2026-11-20-sae-exploration.md"
     base = ROOT / "artifacts/sae_explore"
@@ -82,7 +119,7 @@ def main():
     status = (f"{len(done)} of {len(ORDER)} SAEs finished" + (f"; still queued: {', '.join(pending)}" if pending else ""))
     body = [HEADER.format(status=status)]
     for s in done:
-        body += ["", (base / s / "summary.md").read_text()]
+        body += ["", with_terms((base / s / "summary.md").read_text())]
     out.write_text("\n".join(body) + "\n")
     print(f"wrote {out} ({status})")
 

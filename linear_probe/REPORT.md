@@ -17,6 +17,14 @@ does pushing the activations along that classifier's direction make answers more
 | 2. Strength sweep | On 16 GSM8K dev problems, steering at 0.1×, 0.25× and 0.5× fixed 3, 2 and 3 problems and broke none. Re-running the no-edit condition in different batches alone changes about 3 of 16 outcomes, so this was used only to pick a strength (0.1×). |
 | 3. Held-out test | Steering at 0.1× made no net difference: GSM8K 90% → 90% (0 fixed, 0 broken), HumanEval+ 83.3% → 83.3% (1 fixed, 1 broken). The random-direction control did as well or better: GSM8K 95% (2 fixed, 1 broken), HumanEval+ 83.3% (1 fixed, 1 broken). Removing the probe direction gave GSM8K 95% (1 fixed, 0 broken) and HumanEval+ 66.7% (0 fixed, 2 broken). No difference is statistically significant (all McNemar p ≥ 0.5). |
 
+*Terms:*
+- **AUROC:** the chance a random correct problem scores above a random wrong one (0.5 = chance, 1 = perfect).
+- **Last prompt token / response:** the activation before the model writes anything, and the activation averaged over
+  its reply.
+- **0.1× etc.:** push size as a fraction of a typical token vector's length at the layer.
+- **Fixed / broken:** wrong→right and right→wrong compared with no edit.
+- **McNemar p:** the chance of a fixed/broken split this lopsided if the edit did nothing; near 1 means no evidence.
+
 ## Setup
 
 ### Generation and grading (identical in every run)
@@ -43,12 +51,24 @@ train probes and pick the strength; test is never used for either.
 | GSM8K (1319 problems in its test set) | 200 (all used) | 300 (first 20 used here) |
 | HumanEval+ (163 problems; HumanEval/32 excluded because its test fails the reference solution) | 64 (first 32 used) | 99 (first 12 used) |
 
+*Terms:*
+- **dev:** problems for training probes and picking the strength.
+- **test:** problems kept unseen until the final run.
+- **first N used:** only the first N problems of the split were run, to save time.
+
 ### Baseline: unchanged model on dev
 
 | benchmark | n | accuracy | mean response tokens | hit 4096 limit | wrong answers that hit the limit |
 |---|---|---|---|---|---|
 | GSM8K dev | 200 | 83.0% (166) | 1429 | 9.5% (19) | 17 of 34 |
 | HumanEval+ dev | 32 | 62.5% (20) | 2657 | 37.5% (12) | 11 of 12 |
+
+*Terms:*
+- **n:** problems run.
+- **accuracy:** share answered correctly (count in brackets).
+- **mean response tokens:** average reply length, reasoning included.
+- **hit 4096 limit:** share of replies cut off before finishing.
+- **wrong answers that hit the limit:** how many failures were cut off rather than finished wrong.
 
 ## Step 1: linear probes
 
@@ -72,6 +92,13 @@ perfect. Unlike accuracy, it isn't inflated by the 83% majority class.
 | 29 | **0.729** | 0.859 | **0.771** | 0.892 |
 | 30 | 0.714 | 0.863 | 0.758 | 0.896 |
 
+*Terms:*
+- **layer:** which of the 32 layers (counted from 0) the activation comes from.
+- **last prompt token:** the activation right after `<think>`, before any reasoning.
+- **response mean:** the activation averaged over the whole reply.
+- **values:** cross-validated AUROC (0.5 = chance, 1 = perfect).
+- **bold:** the best layer for that column.
+
 - **Sample sizes:** GSM8K n = 200 (34 wrong). HumanEval+ n = 32 (12 wrong), so its values are noisy.
 - **What AUROC measures:** whether the information is linearly readable, not whether the model uses it. It is not a
   measure of how much a layer contributes.
@@ -90,6 +117,14 @@ the median length of one token's vector at layer 29.
 | 0.10× (α = 3.9) | 87.5% (14/16) | 1101 | 0% | 3 | 0 | 0.25 |
 | 0.25× (α = 9.7) | 81.25% (13/16) | 1389 | 6.25% | 2 | 0 | 0.5 |
 | 0.50× (α = 19.3) | 87.5% (14/16) | 1126 | 6.25% | 3 | 0 | 0.25 |
+
+*Terms:*
+- **0.10× etc.:** fraction of 38.65, the typical token-vector length at layer 29.
+- **α:** the resulting push size.
+- **mean tokens:** average reply length.
+- **hit limit:** share of replies cut off at 4096 tokens.
+- **fixed / broken:** problems that went wrong→right or right→wrong compared with no edit.
+- **McNemar p:** the chance of a split this lopsided if the edit did nothing.
 
 **Why this sweep isn't evidence of an effect:**
 - These 16 problems were part of the probe's training set.
@@ -116,6 +151,13 @@ the median length of one token's vector at layer 29.
 | Random control | h + α·r | does any push of this size do the same? |
 | Probe ablation | h − (h·u)u | does the model need the component along u? |
 
+*Terms:*
+- **h:** the layer-29 output vector at one token.
+- **u:** the probe direction, unit length, toward "correct".
+- **r:** a random unit direction.
+- **α:** push size, 3.87.
+- **(h·u)u:** the part of h lying along u.
+
 ### Results
 
 | benchmark | condition | n | accuracy | mean tokens | hit limit | fixed | broken | McNemar p |
@@ -129,12 +171,15 @@ the median length of one token's vector at layer 29.
 | HumanEval+ | Random control | 12 | 83.3% | 2290 | 8.3% | 1 | 1 | 1.0 |
 | HumanEval+ | Probe ablation | 12 | 66.7% | 2438 | 25.0% | 0 | 2 | 0.5 |
 
-**Columns:**
+*Terms:*
+- **n:** problems run.
+- **accuracy:** share answered correctly.
+- **mean tokens:** average reply length, reasoning included.
+- **hit limit:** share of replies cut off at 4096 tokens.
 - **fixed:** wrong with no edit, right with the edit.
 - **broken:** right with no edit, wrong with the edit.
-- **McNemar p:** an exact two-sided test on fixed versus broken. It asks how likely a split at least this lopsided
-  would be if changes in either direction were equally likely. With these n, reaching p < 0.05 would take 6 or more
-  changes, all in the same direction.
+- **McNemar p:** the chance of a fixed/broken split at least this lopsided if the edit did nothing; with these n,
+  p < 0.05 needs 6 or more changes all in one direction.
 
 ### Every problem, every condition
 

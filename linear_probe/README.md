@@ -1,78 +1,112 @@
 # Linear probes and probe-guided interventions
 
-**Question:** DeepSeek-R1-Distill-Llama-8B carries a 4096-number vector for every token at every layer.
-Can a simple linear classifier read "this answer is going to be correct" off that vector? If it can,
-does pushing the vector in the classifier's direction make the model answer correctly more often?
+This folder holds steps 3 and 4 of the experiment described in the [top-level README](../README.md). Results,
+including every problem's outcome, are in **[REPORT.md](REPORT.md)**.
 
-Results are in **[REPORT.md](REPORT.md)**.
+## The idea in three sentences
 
-## The two steps
+At every token, DeepSeek-R1-Distill-Llama-8B carries a 4096-number vector through each of its 32 layers. If a simple
+linear classifier (a *probe*) can predict from that vector whether the model will answer correctly, then the
+classifier's weight vector is a direction in that space linked to success. We then push the model's vector along
+that direction while it generates, and check whether it gets more answers right than when we push along a random
+direction.
+
+## How it fits together
 
 ```
-baseline run (experiments/baseline.py)
-  │  saves, for every problem: the model's answer, whether it was correct,
-  │  and the activation vector at layers 4, 19, 29, 30
-  ▼
-probe.py            step 1: train a classifier per layer to predict "correct?" from the activation
-  │  saves each classifier's weight vector = a direction u in activation space
-  ▼
-intervene.py        step 2: re-generate with the layer's output edited along u, against controls
-     reports which problems were fixed and which were broken
+experiments/baseline.py    run the unedited model; save each answer, whether it was correct,
+        │                  and the activation vectors at layers 4, 19, 29, 30
+        ▼
+probe.py                   step 3: per layer, train a classifier "activation → correct?"
+        │                  output: a score per layer, and a direction u per layer
+        ▼
+intervene.py               step 4: regenerate with the chosen layer's output edited along u,
+                           next to an unedited run and a random-direction control;
+                           count which problems were fixed and which were broken
 ```
 
-### Step 1: `probe.py`
+## Step 3: `probe.py`
 
-- **Input:** the baseline run's saved activations and correctness labels, from `artifacts/baseline/baseline/`.
-- **Model:** for each layer (4, 19, 29, 30) and each way of summarizing a problem's activations, a logistic regression
-  is trained.
-  - Summaries:
-    - `prompt_last`: the vector at the last prompt token, before the model writes anything.
-    - `resp_mean`: the vector averaged over the whole response.
-  - Inputs are standardized.
-  - Classes are balanced, because correct answers dominate.
-  - Regularization is strong (C = 0.01), since there are 4096 inputs and only about 200 examples.
-- **Score:** 5-fold cross-validated AUROC, the probability that a random correct problem scores above a random wrong
-  one. 0.5 is chance and 1.0 is perfect.
-- **Output:** `artifacts/probe/<run_name>/`
-  - `results.json`: AUROC for every layer and summary, plus the best layer.
-  - `directions.pt`: each probe's weight vector, converted to raw activation units, length 1, pointing toward
-    "correct".
+**Input:**
+- The baseline run's saved activations, `artifacts/baseline/baseline/<bench>_<split>_acts.pt`.
+- Its correct/wrong labels, `<bench>_<split>.jsonl`.
 
-### Step 2: `intervene.py`
+**What it does:** for each layer and each way of summarizing a problem ("pool"):
 
-Each condition is one way of editing the chosen layer's output vector h, at every token, while the model generates:
+1. **Train** a logistic regression to predict correct vs. wrong.
+   - Inputs are standardized (each dimension scaled to mean 0 and variance 1).
+   - Classes are weighted equally, so the probe can't win by always saying "correct".
+   - Regularization is strong (C = 0.01), because there are 4096 inputs and only about 200 examples.
+2. **Score** with 5-fold cross-validated AUROC: the data is split into 5 parts, and each part is scored by a probe
+   trained on the other 4.
+3. **Refit** on all examples and save the probe's weight vector as a direction. It's converted from standardized to
+   raw activation units, scaled to length 1, and oriented toward "correct".
 
-| condition | edit | purpose |
+| pool | the activation vector used for each problem |
+|---|---|
+| `prompt_last` | the last prompt token, right after `<think>`, before the model has generated anything |
+| `resp_mean` | the average over every token of the model's response |
+
+*Terms:*
+- **pool:** how one vector per problem is taken from a sequence of per-token vectors.
+- **`<think>`:** the tag after which the model writes its reasoning.
+
+**Output:** `artifacts/probe/<run_name>/`
+- `results.json`: the AUROC for every pool and layer, plus the best layer.
+- `directions.pt`: the directions, as `{pool: {layer: [4096] tensor}}`.
+
+## Step 4: `intervene.py`
+
+**What it does:** generates answers several times on the same problems, once per *condition*. Each condition is a
+different edit to the chosen layer's output, applied at every token as the model writes.
+
+| condition | edit to h | why it's there |
 |---|---|---|
-| `none` | no change | the matched baseline; re-run here so batching is identical |
-| `probe_pos` | h + α·u | push toward "correct" |
+| `none` | no change | the comparison point; re-run here so batching matches the other conditions exactly |
+| `probe_pos` | h + α·u | the test: push toward "correct" |
 | `probe_neg` | h − α·u | push toward "wrong" (available, not in the default run) |
-| `random_pos` | h + α·r, where r is a random unit vector | same-size push in an unrelated direction (control) |
-| `probe_ablate` | h − (h·u)u | delete the part of h along u |
-| `random_ablate` | h − (h·r)r | delete the part along a random direction (control) |
+| `random_pos` | h + α·r | control: a push of the same size in a random direction |
+| `probe_ablate` | h − (h·u)u | remove the model's component along u |
+| `random_ablate` | h − (h·r)r | control for ablation |
 
-- **Strength:** α = `alpha_frac` × the median length of one token's activation vector at that layer (38.65 at
-  layer 29). So 0.1 means a push about 10% the size of a typical token's vector.
-- **Same settings everywhere:** prompts, problem order, batches and decoding are identical across conditions, and are
-  read from `configs/baseline.yaml`. The edit is the only difference.
-- **Output:** `artifacts/intervene/<run_name>/`
-  - Every response in `<bench>_<split>__<condition>.jsonl`.
-  - Per condition in `summary.json`: accuracy, mean length, truncation rate, fixed (wrong → right), broken
-    (right → wrong), and an exact McNemar p-value on fixed vs. broken.
+*Terms:*
+- **h:** the layer's output vector at one token.
+- **u:** the probe direction from step 3, unit length.
+- **r:** a random unit vector (fixed seed).
+- **α:** push size, set as `alpha_frac` × the median length of one token's vector at that layer (38.65 at layer 29).
+- **(h·u)u:** the part of h lying along u.
 
-The edits use the hook interface in `src/reasoning_env.py`: `R.steer`, `R.ablate`, `R.intervene` and
-`R.run_benchmark(..., edits=...)`. See the top-level README.
+**Why everything is matched:** prompts, problem order, batches and decoding settings are copied from
+`configs/baseline.yaml` and are the same in every condition. Even greedy decoding changes when the batch composition
+changes (padding and bf16 rounding), so the edit has to be the only difference.
+
+**Output:** `artifacts/intervene/<run_name>/`
+- `<bench>_<split>__<condition>.jsonl`: every response and grade.
+- `summary.json`: per condition, as in the table below.
+
+| field | meaning |
+|---|---|
+| `accuracy` | share of problems answered correctly |
+| `mean_resp_tokens` | average response length in tokens, reasoning included |
+| `truncated` | share of responses that hit the 4096-token limit |
+| `fixed` | problems wrong without the edit and right with it |
+| `broken` | problems right without the edit and wrong with it |
+| `mcnemar_p` | exact test of fixed vs. broken; near 1 means no evidence the edit helps or hurts |
 
 ## Files
 
-| file | what it is |
+| file | contents |
 |---|---|
-| `probe.py` | step 1 |
-| `intervene.py` | step 2 |
-| `configs/probe.yaml` | which baseline run to read; CV folds, C, which summary picks the layer |
+| `probe.py` | step 3 |
+| `intervene.py` | step 4 |
+| `configs/probe.yaml` | which baseline run to read, CV folds, regularization C, and which pool picks the layer |
 | `configs/intervene_sweep.yaml` | strength sweep on dev problems (0.1×, 0.25×, 0.5×) |
-| `configs/intervene.yaml` | held-out run: no edit / probe / random / ablate on test problems |
-| `REPORT.md` | results, setup, and how to read every number |
+| `configs/intervene.yaml` | held-out run: no edit, probe steering, random control, probe ablation |
+| `REPORT.md` | all results, setup, per-problem outcomes, caveats |
+
+*Terms:*
+- **CV folds:** how many parts the data is split into for cross-validation.
+- **dev / held-out:** problems used for tuning, and problems kept unseen until the final run.
 
 ## Run
 
@@ -81,9 +115,9 @@ source .venv/bin/activate
 python linear_probe/probe.py --config linear_probe/configs/probe.yaml                     # GSM8K probes
 python linear_probe/probe.py --config linear_probe/configs/probe.yaml \
   -o run_name=humanevalplus_dev -o benchmark=humanevalplus                                  # HumanEval+ probes
-python linear_probe/intervene.py --config linear_probe/configs/intervene_sweep.yaml       # pick strength (~40 min)
+python linear_probe/intervene.py --config linear_probe/configs/intervene_sweep.yaml       # choose strength, ~40 min
 python linear_probe/intervene.py --config linear_probe/configs/intervene.yaml -o 'alpha_fracs=[0.1]'
 ```
 
 Any config value can be overridden with `-o key=value`, using dots for nesting, for example
-`-o 'evals=[{benchmark: gsm8k, split: test, n: 20}]'`. Finished conditions are skipped on rerun.
+`-o 'evals=[{benchmark: gsm8k, split: test, n: 20}]'`. Conditions that already finished are skipped on rerun.

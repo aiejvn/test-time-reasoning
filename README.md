@@ -6,38 +6,239 @@ A QMIND research project (2026-2027) on what happens inside a reasoning model wh
 fluently wrong. The full research proposal is in [PROPOSAL.md](PROPOSAL.md); the project overview is
 [further down](#project-overview).
 
-## This branch: DeepSeek-R1-Distill-Llama-8B infrastructure
+## This branch: reading and editing DeepSeek-R1's internals
 
-The main deliverable of this branch is infrastructure for running **DeepSeek-R1-Distill-Llama-8B** (32 layers,
-4096-dimensional residual stream) in-process on one GPU, with four capabilities:
+This branch builds the tooling to look inside **DeepSeek-R1-Distill-Llama-8B** while it solves problems, and to
+change what's inside while it runs. It then uses that tooling for a first experiment:
 
-1. **Run the model** on GSM8K (math) and HumanEval+ (code), with batched greedy generation, automatic grading, and
-   seeded dev/test splits.
-2. **Read activations:** capture any layer's output (resid_post) at every token, or pooled per problem (last prompt
-   token, response mean, last response token), at several layers in one pass.
-3. **Apply changes during generation:** hook any layer and edit its output on every forward pass (add a direction,
-   project a direction out, or any function you write). Baseline and edited runs share one code path, so their
-   settings match exactly.
-4. **Linear probes:** train per-layer classifiers on those activations, then use their directions as intervention
-   targets. This is in [`linear_probe/`](linear_probe/).
+> Can we tell, from the model's internal state, whether it's about to answer correctly? If so, can we nudge
+> that internal state to make it answer correctly more often, on math and on code?
 
-Everything is one Python module, [`src/reasoning_env.py`](src/reasoning_env.py). There's no server. The model takes
-about 16 GB in bf16, so it fits on a 23 GB A10G with room for generation.
+This section explains **what** was done and **how**, assuming you know how transformers and LLMs work but haven't
+seen this project. Detailed results are in [`linear_probe/REPORT.md`](linear_probe/REPORT.md) and
+[`reports/2026-11-20-sae-exploration.md`](reports/2026-11-20-sae-exploration.md).
+
+### Background: the four ideas this work uses
+
+**1. The residual stream.** A transformer keeps one vector per token, here 4096 numbers, and each of its 32 layers
+reads that vector and adds to it. The vector after layer L, called *resid_post* at layer L, is the model's working
+state for that token at that depth. Everything here is measured on, or applied to, these vectors. We look at
+layers 4 (early), 19 (middle; the layer used in the "I Have Covered All the Bases Here" paper), and 29 and 30
+(late, but not the last layer).
+
+**2. Hooks.** PyTorch can run a function every time a layer produces its output. A hook can *read* that output
+(to record activations) or *replace* it (to intervene). Because it runs on every forward pass, it also runs on
+every generated token during `generate()`. That lets us change the model's internals while it writes, with no
+retraining and no change to its weights.
+
+**3. Linear probes.** A probe is a plain logistic-regression classifier trained to predict a label (here, "did the
+model answer this problem correctly?") from a layer's activation vector. If the probe works on problems it wasn't
+trained on, the information is linearly readable at that layer. The probe's weight vector is a direction in the
+4096-dimensional space, roughly "the direction that separates correct from wrong". A probe that works shows the
+information is *present*, not that the model *uses* it. Using it is what interventions test.
+
+**4. Steering and ablation.** Given a direction u, there are two simple edits to the layer output h at each token:
+- **Steering:** h ← h + α·u, pushing the state along u by an amount α.
+- **Ablation:** h ← h − (h·u)u, deleting the part of h that lies along u.
+
+If steering toward "correct" raises accuracy more than steering along a **random** direction of the same size, the
+direction has a causal effect beyond just disturbing the model. That comparison against random is the key control.
+
+**Also used: sparse autoencoders (SAEs).** An SAE is a separately trained network that rewrites a 4096-number
+activation as a sparse combination of tens of thousands of "features". Usually only a few dozen are active per
+token, and each tends to mean something recognizable (a word, a topic, a reasoning move). We use pretrained SAEs for
+this model to ask which features differ between correct and wrong answers.
+
+### What was done, step by step
+
+```
+ ┌─────────────────────────┐   ┌───────────────────────┐   ┌──────────────────────────┐
+ │ 1. Infrastructure       │──▶│ 2. Baseline           │──▶│ 3. Linear probes         │
+ │ load model, hooks to    │   │ run the unedited      │   │ predict "correct?" from  │
+ │ read/edit any layer,    │   │ model on math + code, │   │ each layer's activations │
+ │ graders                 │   │ save answers + acts   │   │ → direction u            │
+ └─────────────────────────┘   └───────────────────────┘   └────────────┬─────────────┘
+                                          │                            ▼
+                                          │              ┌──────────────────────────┐
+                                          │              │ 4. Interventions         │
+                                          │              │ steer / ablate along u   │
+                                          │              │ vs. random-direction     │
+                                          │              │ control, on unseen probs │
+                                          ▼              └──────────────────────────┘
+                               ┌───────────────────────┐
+                               │ 5. SAE exploration    │
+                               │ which SAE features    │
+                               │ differ correct vs.    │
+                               │ wrong?                │
+                               └───────────────────────┘
+```
+
+#### Step 1. Infrastructure ([`src/reasoning_env.py`](src/reasoning_env.py))
+
+**What:** one Python module that runs the model on one GPU and gives you four operations:
+- generate and grade answers;
+- record any layer's activations;
+- edit any layer's output during generation;
+- load the two benchmarks.
+
+**How:**
+- **Model:** loaded with Hugging Face `transformers` in bf16. It takes about 16 GB, so it fits on a 23 GB A10G with
+  room for generating long reasoning traces.
+- **Reading activations:** a forward hook on decoder layer L captures its output (resid_post).
+  `extract_activations` re-runs a saved prompt and response through the model and summarizes each problem in one of
+  three ways ("pools"):
+  - `prompt_last`: the vector at the last prompt token, right after `<think>` and before any reasoning.
+  - `resp_mean`: the mean over the response tokens.
+  - `resp_last`: the last response token.
+- **Editing:** `intervene(model, {layer: fn})` installs a hook that replaces the layer's output with `fn(output)` on
+  every forward pass. `steer(u, α)` and `ablate(u)` are the two edits above.
+- **One code path:** `run_benchmark(..., edits=...)` is the same function with or without edits. Baseline and edited
+  runs therefore use identical prompts, batching and decoding.
+- **Checks:** a steering edit of 8·u changed the layer output by exactly 8·u. Ablation removed 99.9% of the component
+  along u. An edit of size 0 reproduced the unedited output token-for-token.
+
+**Benchmarks and grading:**
+- **GSM8K (math word problems):** the model's last `\boxed{}` answer must equal the reference number exactly.
+- **HumanEval+ (write a Python function):** the extracted code is run against the original and the stricter "plus"
+  unit tests in a subprocess.
+- **Prompting:** both use DeepSeek's recommended "Please reason step by step" prompt with greedy decoding, up to 4096
+  new tokens.
+- **Splits:** problems are split, with a fixed seed, into **dev** (used to build and tune things) and **test** (held
+  out for the final check).
+
+#### Step 2. Baseline ([`experiments/baseline.py`](experiments/baseline.py))
+
+**What:** run the unedited model and keep everything: the prompt, the full response including its reasoning, whether
+it was correct, its length, and activations at layers 4, 19, 29 and 30.
+
+**How:** `python experiments/baseline.py --config configs/baseline.yaml`. Outputs go to `artifacts/baseline/`
+(gitignored).
+
+**Result:**
+
+| | problems | correct | hit 4096-token limit |
+|---|---|---|---|
+| GSM8K dev | 200 | 83.0% | 9.5% |
+| HumanEval+ dev | 32 | 62.5% | 37.5% |
+
+*Terms:*
+- **dev:** problems used for building and tuning, as opposed to held-out test problems.
+- **problems:** how many were run. For HumanEval+, this is the first 32 of 64 dev problems.
+- **correct:** share graded right.
+- **hit 4096-token limit:** share of responses cut off before finishing, which are graded on what was written so
+  far.
+
+Many wrong answers are the model still reasoning when it runs out of tokens: 17 of 34 wrong on GSM8K and 11 of 12
+on HumanEval+.
+
+#### Step 3. Linear probes ([`linear_probe/probe.py`](linear_probe/probe.py))
+
+**What:** for each layer, train a probe to predict "will this answer be correct?" from the activations saved in
+step 2.
+
+**How:**
+- Logistic regression with standardized inputs, balanced classes and strong regularization (4096 inputs, ~200
+  examples).
+- **Score:** 5-fold cross-validated AUROC, so every problem is scored by a probe that didn't train on it. AUROC is
+  the chance that a random correct problem scores above a random wrong one: 0.5 is chance, 1.0 is perfect.
+
+**Result:**
+- **At the last prompt token** (before the model has written anything), AUROC is 0.65–0.73 on math and 0.65–0.77 on
+  code. Both peak at layer 29, so some of the outcome is visible before the model reasons.
+- **Over the whole response**, AUROC reaches 0.85–0.91, but that summary can see length and truncation.
+- The GSM8K probe direction at layer 29 becomes the direction u for step 4.
+
+#### Step 4. Interventions ([`linear_probe/intervene.py`](linear_probe/intervene.py))
+
+**What:** re-generate answers with the layer-29 output edited at every token, and count which problems the edit
+fixed and which it broke. Four conditions run on the same problems in the same batches:
+
+| condition | edit | role |
+|---|---|---|
+| no edit | none | baseline |
+| probe steering | h + α·u | the actual test |
+| random control | h + α·r, r random | is any push of this size enough? |
+| probe ablation | h − (h·u)u | does the model need this direction? |
+
+*Terms:*
+- **h:** the layer-29 output vector at one token.
+- **u:** the probe direction, unit length, pointing toward "correct".
+- **r:** a random unit direction, with fixed seed 1.
+- **α:** push size.
+- **h·u:** how far h extends along u (dot product), so (h·u)u is that component.
+
+**How:**
+- α is set relative to the layer's scale: 0.1 × 38.65, the median length of one token's vector at layer 29.
+- The strength was chosen on 16 dev problems, then the final run used problems never touched before: 20 GSM8K and
+  12 HumanEval+ test problems.
+- Fixed and broken counts are compared with an exact McNemar test.
+
+**Result:**
+- Probe steering made **no net difference**: GSM8K 90% → 90%, HumanEval+ 83.3% → 83.3%.
+- The random control did as well or better.
+- Ablation: GSM8K 95% (1 fixed, 0 broken), HumanEval+ 66.7% (0 fixed, 2 broken).
+- Nothing is statistically significant at this sample size.
+- **Noise:** with greedy decoding, merely changing which problems share a batch flipped about 3 of 16 outcomes in a
+  dev check.
+
+Full tables, every problem's outcome under every condition, and caveats are in
+[`linear_probe/REPORT.md`](linear_probe/REPORT.md).
+
+#### Step 5. SAE exploration ([`experiments/sae_explore.py`](experiments/sae_explore.py))
+
+**What:** using pretrained SAEs for this exact model, list the features whose activation differs most between
+correct and wrong answers. For each feature, show where it fires most strongly, to tell a "reasoning" feature from
+one that just fires on a word like "Wait".
+
+**How:**
+- The step-2 prompts and responses are re-run through the model and every token is encoded with the SAE.
+- Features are ranked by Cohen's d, the difference in group means divided by the pooled standard deviation, both at
+  the last prompt token and averaged over the response.
+- Each feature links to its Neuronpedia dashboard where one exists.
+- SAEs used:
+  - **Llama Scope R1-Distill** at layers 4, 19, 29 and 30 (32,768 features each).
+  - **The SAE from Galichin et al. 2025** at layer 19 (65,536 features).
+- Reconstruction quality on our data, measured as the cosine between the SAE's reconstruction and the real
+  activation: 0.82–0.90 for Llama Scope and 0.84–0.85 for the paper's SAE.
+
+**Result:** per-SAE feature tables are in [`reports/2026-11-20-sae-exploration.md`](reports/2026-11-20-sae-exploration.md).
+These are correlations on dev data. None of these features has been intervened on or validated.
+
+#### Also on this branch: [`coding_eval/`](coding_eval/)
+
+Jacob's evaluator, merged from `jacobpowerr/qmind-coding-eval`. It grades saved HumanEval+ outputs with the official
+EvalPlus harness inside a locked-down Docker container and compares baseline against intervention runs. It isn't
+connected to our outputs yet. It uses its own splits (20 dev / 40 held-out) and its own input format, so an exporter
+is needed.
+
+### Not done yet
+
+- **Larger held-out runs:** more problems, several strengths, several random seeds, other layers.
+- **Negative steering (pushing away from "correct").**
+- **Input ablation:** the prompt without "reason step by step". This is implemented as `prompt_variant=plain` but
+  hasn't been run.
+- **SAE-guided interventions:** steering along individual SAE features.
+- **Grading through `coding_eval/`.**
 
 ### Where things are
 
 | path | what's there |
 |---|---|
-| [`src/reasoning_env.py`](src/reasoning_env.py) | **Core infrastructure.** Model loading, activation capture, intervention hooks, benchmark loading, prompting and grading. |
-| [`src/sae_env.py`](src/sae_env.py) | Model-agnostic helpers reused by the above (forward hooks, batched chat generation, logging); also the Gemma helpers. |
-| [`experiments/baseline.py`](experiments/baseline.py), [`configs/baseline.yaml`](configs/baseline.yaml) | Baseline run: generate, grade, save every response and the activations at layers 4/19/29/30. |
-| [`linear_probe/`](linear_probe/) | Linear probes and probe-guided interventions. Code, configs, a [README](linear_probe/README.md) and the [results report](linear_probe/REPORT.md). |
-| [`experiments/sae_explore.py`](experiments/sae_explore.py), [`experiments/sae_report.py`](experiments/sae_report.py), [`configs/sae_explore.yaml`](configs/sae_explore.yaml) | SAE feature exploration with pretrained SAEs for this model. Results in [`reports/2026-11-20-sae-exploration.md`](reports/2026-11-20-sae-exploration.md). |
-| [`coding_eval/`](coding_eval/) | Jacob's Dockerized EvalPlus evaluator for saved HumanEval+ outputs (merged from `jacobpowerr/qmind-coding-eval`). Not yet wired to our outputs. |
-| `artifacts/` (gitignored) | Every run's outputs: responses, grades, activations, probe directions, intervention runs. |
-| [`notebooks/`](notebooks/) | Earlier Gemma-3-4B-IT SAE failure-mode notebooks (separate track, [below](#gemma-sae-failure-mode-experiments)). |
+| [`src/reasoning_env.py`](src/reasoning_env.py) | Step 1: model loading, activation capture, intervention hooks, benchmarks, grading |
+| [`src/sae_env.py`](src/sae_env.py) | Model-agnostic helpers used by the above (hooks, batched generation, logging), plus the earlier Gemma helpers |
+| [`experiments/baseline.py`](experiments/baseline.py), [`configs/baseline.yaml`](configs/baseline.yaml) | Step 2: baseline run |
+| [`linear_probe/`](linear_probe/) | Steps 3–4: [README](linear_probe/README.md), `probe.py`, `intervene.py`, configs, [REPORT.md](linear_probe/REPORT.md) |
+| [`experiments/sae_explore.py`](experiments/sae_explore.py), [`experiments/sae_report.py`](experiments/sae_report.py), [`configs/sae_explore.yaml`](configs/sae_explore.yaml) | Step 5: SAE exploration and its report builder |
+| [`reports/2026-11-20-sae-exploration.md`](reports/2026-11-20-sae-exploration.md) | Step 5 results |
+| [`coding_eval/`](coding_eval/) | Jacob's Dockerized EvalPlus evaluator |
+| `artifacts/` (gitignored) | Every run's raw outputs: responses, grades, activations, probe directions, intervention runs |
+| [`notebooks/`](notebooks/) | Earlier, separate Gemma-3-4B-IT SAE notebooks ([below](#gemma-sae-failure-mode-experiments)) |
 
-### Quick start
+*Terms:*
+- **acts:** activations, the saved layer-output vectors.
+- **gitignored:** kept locally, never committed.
+
+### Using the infrastructure
 
 ```python
 import sys; sys.path.insert(0, "src")
@@ -46,68 +247,52 @@ import reasoning_env as R
 model, tok = R.load_model()                                   # DeepSeek-R1-Distill-Llama-8B, bf16, cuda
 items = R.load_benchmark("gsm8k", n_dev=200, n_test=300)["dev"][:8]
 
-# Generate + grade (rows: id, correct, pred, n_resp_tokens, truncated, ...; gens: prompt_ids, resp_ids, text)
+# Generate and grade. rows: id, correct, pred, n_resp_tokens, truncated, ...; gens: prompt_ids, resp_ids, text
 rows, gens = R.run_benchmark(model, tok, "gsm8k", items)
 
 # Read activations: {pool: {layer: [n_problems, 4096]}}
 acts = R.extract_activations(model, tok, gens, layers=[4, 19, 29, 30], pools=["prompt_last", "resp_mean"])
 
-# Apply changes during generation, at any layer. Same call, same settings, plus `edits`.
+# Edit a layer during generation: the same call plus `edits`
 u = acts["prompt_last"][29].mean(0)                           # any [4096] direction
 rows, gens = R.run_benchmark(model, tok, "gsm8k", items, edits={29: R.steer(u, alpha=3.9)})     # h + 3.9·unit(u)
-rows, gens = R.run_benchmark(model, tok, "gsm8k", items, edits={29: R.ablate(u)})               # h − (h·û)û
+rows, gens = R.run_benchmark(model, tok, "gsm8k", items, edits={29: R.ablate(u)})               # remove u component
 rows, gens = R.run_benchmark(model, tok, "gsm8k", items,
                              edits={29: R.steer(R.random_direction(4096, seed=1), alpha=3.9)})  # random control
 
-# Lower level: hook any forward/generate call yourself
+# Lower level: your own hook around any forward or generate call
 with R.intervene(model, {19: lambda h: h * 1.1}, positions="generated"):   # edit only generated tokens
     out = model.generate(...)
 with R.capture_resid_post(model, [19, 29]) as buf:                         # buf[layer] = list of [B, T, 4096]
     model.model(**inputs)
 ```
 
-- `alpha` is in activation-length units, and typical per-token lengths grow with depth: about 4 at layer 4, 16 at
-  layer 19, and 38 to 43 at layers 29 and 30.
-- `positions="all"` (the default) edits the prompt and every generated token. `"generated"` edits only generated
-  tokens.
+- **Scale of α:** typical per-token vector lengths grow with depth: about 4 at layer 4, 16 at layer 19, and 38–43 at
+  layers 29 and 30. Choose α relative to the layer.
+- **Positions:** `positions="all"` (the default) edits the prompt and every generated token. `"generated"` edits only
+  generated tokens.
 
-### Baseline run
+### Running the experiments
 
 ```bash
 source .venv/bin/activate
-python experiments/baseline.py --config configs/baseline.yaml               # full run
-python experiments/baseline.py -o run_name=smoke -o 'splits=[dev]' \
-  -o benchmarks.gsm8k.n_dev=8 -o benchmarks.humanevalplus.n_dev=8            # ~7 min smoke test
+python experiments/baseline.py --config configs/baseline.yaml                         # step 2
+python linear_probe/probe.py --config linear_probe/configs/probe.yaml                 # step 3
+python linear_probe/intervene.py --config linear_probe/configs/intervene_sweep.yaml   # step 4, pick strength on dev
+python linear_probe/intervene.py --config linear_probe/configs/intervene.yaml         # step 4, held-out test
+python experiments/sae_explore.py --config configs/sae_explore.yaml -o sae=llamascope_l19   # step 5, one SAE per run
+python experiments/sae_report.py                                                      # step 5 report
 ```
 
-**Settings:**
-- **Splits:** seeded and disjoint. GSM8K is 200 dev / 300 test, from its 1319-problem test set. HumanEval+ is
-  64 dev / 99 test; HumanEval/32 is excluded because its HF test fails the reference solution.
-- **Decoding:** greedy, with DeepSeek's recommended prompt ("Please reason step by step, and put your final answer
-  within \boxed{}"), up to 4096 new tokens.
-- **Prompt ablation:** `prompt_variant=plain` drops the step-by-step instruction.
-- **Overrides:** any config key can be overridden with `-o dotted.key=value`. `benchmarks.<b>.limit=N` runs only the
-  first N problems of each split.
-
-**Grading:**
-- **GSM8K:** the last `\boxed{}` after `</think>` (or the last number) must match exactly.
-- **HumanEval+:** the last python block after `</think>` runs against the base and plus tests (30 s timeout).
-- Responses truncated before they finish count as wrong.
-
-**Outputs** go to `artifacts/baseline/<run_name>/`:
-- `<bench>_<split>.jsonl`: every problem's prompt, response, grade, length and truncation flag.
-- `.meta.json`: config, launch command and summary.
-- `_acts.pt`: the activations.
-- `summary.json`.
-
-Runs are resumable per split. Set `wandb.enabled=true` to log to W&B.
-
-### Results so far
-
-- **Linear probes and interventions:** [`linear_probe/REPORT.md`](linear_probe/REPORT.md).
-- **SAE feature exploration:** [`reports/2026-11-20-sae-exploration.md`](reports/2026-11-20-sae-exploration.md).
+- **Overrides:** any config value can be overridden with `-o dotted.key=value`, for example
+  `-o benchmarks.humanevalplus.limit=32` to run only the first 32 problems of each split.
+- **Resuming:** runs pick up where they left off.
+- **Launch commands:** each run's exact command is saved next to its outputs in `artifacts/`.
+- **Smoke test:** `python experiments/baseline.py -o run_name=smoke -o 'splits=[dev]' -o benchmarks.gsm8k.n_dev=8 -o
+  benchmarks.humanevalplus.n_dev=8`, about 7 minutes.
 
 ## Project overview
+
 
 ### The problem
 
