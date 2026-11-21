@@ -1,5 +1,8 @@
 # Linear probes and probe-guided interventions
 
+> **Status (2026-11-21):** `probe.py` predicts final-answer correctness, which is not the project's
+> self-correction target. See the [audit response in REPORT.md](REPORT.md#audit-response-2026-11-21).
+
 This folder holds steps 3 and 4 of the experiment described in the [top-level README](../README.md). Results,
 including every problem's outcome, are in **[REPORT.md](REPORT.md)**.
 
@@ -103,6 +106,8 @@ changes (padding and bf16 rounding), so the edit has to be the only difference.
 | `configs/intervene_sweep.yaml` | strength sweep on dev problems (0.1×, 0.25×, 0.5×) |
 | `configs/intervene.yaml` | held-out run: no edit, probe steering, random control, probe ablation |
 | `REPORT.md` | all results, setup, per-problem outcomes, caveats |
+| `reproduce_acts.py` | rebuilds activations from committed responses, retrains the probe, compares with a saved direction (audit item 2) |
+| `self_correction_events.py` | first-pass event-level self-correction labels and pre-marker token positions (audit item 1); no probe trained on them yet |
 
 *Terms:*
 - **CV folds:** how many parts the data is split into for cross-validation.

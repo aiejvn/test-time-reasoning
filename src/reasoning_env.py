@@ -221,11 +221,16 @@ def _to_num(s: Optional[str]) -> Optional[float]:
 
 
 def grade_gsm8k(item: dict, text: str) -> dict:
-    """Exact numeric match of the last \\boxed{} in the final answer (fallback: last number there)."""
+    """Exact numeric match of the last \\boxed{} in the final answer (fallback: last number there).
+
+    A response whose thinking never closed (no </think>, usually truncated) is graded wrong: it has no
+    final answer, and the last-number fallback would otherwise score whatever number the unfinished
+    reasoning happened to end on (this marked gsm8k/711, /881 and /288 correct in earlier runs)."""
     region = final_region(text)
     boxed = _last_boxed(region)
     pred = _to_num(boxed) if boxed is not None else _to_num(region)
-    return dict(pred=pred, gold=float(item["answer"]), correct=pred is not None and abs(pred - float(item["answer"])) < 1e-6)
+    ok = "</think>" in text and pred is not None and abs(pred - float(item["answer"])) < 1e-6
+    return dict(pred=pred, gold=float(item["answer"]), correct=ok)
 
 
 def extract_code(text: str) -> str:
@@ -246,9 +251,13 @@ def _run(program: str, timeout: float) -> bool:
 
 def grade_humanevalplus(items: List[dict], texts: List[str], timeout: float = 30.0, workers: int = 4) -> List[dict]:
     """Run each extracted function against the HumanEval+ (base + plus) tests in a subprocess.
-    The prompt's import lines are prepended, since models often drop them when restating the function."""
+    The prompt's import lines are prepended, since models often drop them when restating the function.
+    A response whose thinking never closed (no </think>) is graded wrong without running anything, so a
+    draft written inside unfinished reasoning can't count as the answer."""
     def one(item, text):
         code = extract_code(text)
+        if "</think>" not in text:
+            return dict(code=code, correct=False)
         imports = "\n".join(l for l in item["question"].splitlines() if re.match(r"(from\s+[\w.]+\s+import\s|import\s+[\w.]+)", l))
         program = f"{imports}\n{code}\n\n{item['test']}\n\ncheck({item['entry_point']})\n"
         return dict(code=code, correct=_run(program, timeout))

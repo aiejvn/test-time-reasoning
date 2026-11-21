@@ -13,7 +13,7 @@ prompt_variant: cot                  # cot | plain (plain drops "reason step by 
 
 gen:
   max_new_tokens: 4096               # responses hitting this are flagged truncated (and usually wrong)
-  batch_size: 8                      # 8 x ~4.3k tokens of KV cache fits beside the 16 GB model on an A10G
+  batch_size: 1                      # 1 = batch-invariant greedy decoding (8 changed every response in experiments/check_determinism.py; see linear_probe/REPORT.md audit 3a)
   do_sample: false                   # greedy: deterministic, so baseline-vs-intervention flips are per-problem
   temperature: 0.6                   # only used if do_sample
 

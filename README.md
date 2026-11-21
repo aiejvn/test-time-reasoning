@@ -17,6 +17,15 @@ change what's inside while it runs. It then uses that tooling for a first experi
 This section explains **what** was done and **how**, assuming you know how transformers and LLMs work but haven't
 seen this project. Detailed results are in [`linear_probe/REPORT.md`](linear_probe/REPORT.md).
 
+> **Status (2026-11-21), after two audits:** the steps 3–4 results below can't support claims.
+> - The probe's label is final-answer correctness, not genuine self-correction, which is the project's target.
+> - Greedy decoding changed every response when batched (batch size is now 1).
+> - The grader scored 3 unfinished responses as correct (fixed).
+> - Two HumanEval+ split definitions conflict.
+>
+> The probe direction itself reproduces exactly from committed files. Details:
+> [audit response](linear_probe/REPORT.md#audit-response-2026-11-21).
+
 ### Background: the ideas this work uses
 
 **1. The residual stream.** A transformer keeps one vector per token, here 4096 numbers, and each of its 32 layers
@@ -187,6 +196,12 @@ is needed.
   hasn't been run.
 - **SAE-guided interventions:** steering along individual sparse-autoencoder (SAE) features.
 - **Grading through `coding_eval/`.**
+- **Self-correction probe:** event labels from a step-level judge, then a probe trained at pre-marker positions that
+  contrasts genuine correction with verification. A first-pass labeller exists
+  ([`linear_probe/self_correction_events.py`](linear_probe/self_correction_events.py)); it found no automatically
+  labelable genuine corrections in the 200 GSM8K dev traces.
+- **Batch-size-1 baseline and rerun of steps 3–4**, with the fixed grader.
+- **One canonical HumanEval+ split** shared by `src/reasoning_env.py` and `coding_eval/`.
 
 ### Where things are
 

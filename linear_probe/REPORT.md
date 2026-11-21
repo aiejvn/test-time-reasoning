@@ -1,5 +1,11 @@
 # Linear probes and probe-guided interventions: results (2026-11-20)
 
+> **Status (2026-11-21): this probe is not the project's target, and the results below can't support claims.**
+> Two independent audits reviewed this work. Their findings and what was done about each are in
+> [Audit response](#audit-response-2026-11-21) at the end. In short: the probe predicts *final-answer
+> correctness*, not *genuine self-correction*. The direction is reproducible. Decoding depends on batching, and the
+> grader had a leak.
+
 **Model:** DeepSeek-R1-Distill-Llama-8B, 32 layers. Each token's internal state is a 4096-number vector.
 
 **Benchmarks:**
@@ -251,9 +257,13 @@ gsm8k/288 under the random control is marked correct even though it hit the limi
 
 ## Reproduce
 
+These runs used `gen.batch_size: 8`, the default before 2026-11-21. Pass `-o gen.batch_size=8` to `baseline.py`
+to reproduce them; `intervene.py` reads the batch size from `configs/baseline.yaml`, so edit that file back to 8
+for those runs.
+
 ```bash
 source .venv/bin/activate
-python experiments/baseline.py --config configs/baseline.yaml       # GSM8K dev (this run was stopped after GSM8K dev)
+python experiments/baseline.py --config configs/baseline.yaml -o gen.batch_size=8  # GSM8K dev (stopped after GSM8K dev)
 python experiments/baseline.py --config configs/baseline.yaml -o 'splits=[dev]' -o benchmarks.humanevalplus.limit=32
 python linear_probe/probe.py --config linear_probe/configs/probe.yaml
 python linear_probe/probe.py --config linear_probe/configs/probe.yaml -o run_name=humanevalplus_dev -o benchmark=humanevalplus
@@ -264,3 +274,146 @@ python linear_probe/intervene.py --config linear_probe/configs/intervene.yaml -o
 
 The sweep and held-out runs were launched from `experiments/intervene.py`, before the move to `linear_probe/`. The
 logic is unchanged. Outputs and exact launch commands are in `artifacts/{baseline,probe,intervene}/` (gitignored).
+
+## Audit response (2026-11-21)
+
+Two audits reviewed steps 1–3. This section lists each finding, what was checked, and what changed.
+
+| finding | status | evidence / change |
+|---|---|---|
+| 1. Probe trains on the wrong label | **Confirmed. Not fixed yet: labels exist only as a first pass** | See [1](#1-wrong-probe-target) |
+| 2. Probe direction can't be reproduced | **Resolved: it reproduces exactly from committed files** | See [2](#2-reproducibility-of-the-direction) |
+| 3a. Greedy decoding depends on batching | **Confirmed** | See [3a](#3a-batch-dependent-decoding) |
+| 3b. Grader scores unfinished reasoning | **Confirmed and fixed** | See [3b](#3b-grading-leak) |
+| 3c. Coding evaluation | **Confirmed: two incompatible HumanEval+ splits; not graded with EvalPlus** | See [3c](#3c-coding-evaluation) |
+| 4. No independent held-out probe test | **Confirmed. Not run** | See [4](#4-held-out-probe-test) |
+| 5. 33 HumanEval+ baseline records | **The real number is 32** | See [5](#5-humaneval-record-count) |
+
+### 1. Wrong probe target
+
+`probe.py` labels each problem by whether its *final answer* was correct. The proposal's target is the
+representation behind *recovering from an error* (PROPOSAL.md RQ1, RQ4), and the two labels are not the same thing.
+A trace can be correct with no correction at all. A correction can also happen inside a trace that still ends wrong.
+Choosing a different layer or strength doesn't fix this.
+
+**Done:** [`self_correction_events.py`](self_correction_events.py) builds event-level labels from the saved traces.
+- **Event:** a reflection marker ("Wait", "Hmm", "But wait", "Let me check", …) that starts a sentence inside
+  `<think>`.
+- **Label:** compare the answer the model stated before the marker with the next answer it states after the marker.
+  A wrong answer replaced by the right one is a `genuine_correction`. The same answer kept is a `verify_kept_*`
+  event. The full list of labels is in the script's docstring.
+- **Position:** the token immediately before the marker, so the correction word isn't yet in the context. That
+  position still predicts the marker as the next token. The intended contrast is therefore genuine correction against
+  verification (both are followed by a marker), not event against no event.
+
+**Result on the 200 GSM8K dev traces:**
+- 1,651 events: Wait 984, Hmm 476, But wait 128, Let me check 30, Let me double-check 24, Let me verify 6,
+  Hold on 2, Actually 1.
+- Only 36 events could be labelled, and none of them is a genuine correction: `verify_kept_right` 24 and
+  `verify_kept_wrong` 12.
+- The other 1,615 are `unlabeled`. The model rarely restates an answer mid-reasoning, so an answer is missing on
+  one side of the event.
+- A looser version that counts phrases like "total of X" as answers finds wrong→right changes in 28 traces. Those
+  "answers" are often intermediate values, though.
+- Keyword matching doesn't work either. "Mistake" phrases mostly appear in "to make sure I didn't make a mistake" during
+  re-checks, and "But wait, that's not all" continues the problem rather than reflecting on it.
+
+**Not done:** no self-correction probe was trained. There are no usable positive labels, and training on these would
+repeat the original problem. Two things are needed first:
+- **A step-level judge.** For each event it must decide whether the step just before the marker contained an
+  error and whether the step after it fixed that error. The options are an LLM judge or human annotation. This is a
+  team decision: which judge, and who checks its accuracy on a hand-labelled sample.
+- **More traces.** Using the remaining GSM8K problems, or several samples per problem, would yield enough positives.
+
+### 2. Reproducibility of the direction
+
+The direction is reproducible. Two checks were run on 2026-11-21:
+- **From saved activations:** re-running `probe.py` on the saved activations gives every direction and every
+  cross-validated AUROC bit-for-bit (largest difference 0.0).
+- **From committed files only:** [`reproduce_acts.py`](reproduce_acts.py) re-tokenized the committed responses in
+  `output/baseline/baseline/gsm8k_dev.jsonl` and re-extracted the activations. It then retrained the probe.
+  - All 200 responses re-tokenized to their logged lengths.
+  - `prompt_last` activations were identical, and the layer-29 direction matched with cosine 0.99999994.
+  - `resp_mean` activations differed by at most 0.11, and those directions matched with cosine above 0.99998.
+
+Command:
+
+```bash
+python linear_probe/reproduce_acts.py --responses output/baseline/baseline/gsm8k_dev.jsonl \
+  --saved-acts artifacts/baseline/baseline/gsm8k_dev_acts.pt --saved-probe artifacts/probe/gsm8k_dev \
+  --out artifacts/probe/gsm8k_dev_rebuilt
+```
+
+SHA-256 of the files the direction came from:
+
+| file | SHA-256 |
+|---|---|
+| `output/baseline/baseline/gsm8k_dev.jsonl` (committed; identical to the `artifacts/` copy) | `b7573a0e11ba463e9b67ecfb4c668cd374a9422c6d1dc38ccc9f95f6ad2997cb` |
+| `artifacts/baseline/baseline/gsm8k_dev_acts.pt` | `740da5d6c5d180fb4512efc4c4ed5e288d65ecfe32990f3387f0cce625e0516b` |
+| `artifacts/probe/gsm8k_dev/directions.pt` | `37d22d3dfc1c9d0e5cc196c8c9d991fac23c6e637cc55344fe90708dd499bf2c` |
+
+The `.pt` files are still gitignored, per AGENTS.md, and not yet on W&B or the HF Hub.
+
+**Caveat:** the direction is reproducible, but it was trained with 2 wrong labels (see 3b).
+
+### 3a. Batch-dependent decoding
+
+[`experiments/check_determinism.py`](../experiments/check_determinism.py) checks this directly. It generates the
+first 8 GSM8K dev problems three ways, each with greedy decoding and at most 1,024 new tokens:
+- all 8 in one batch;
+- one problem per batch;
+- one problem per batch, a second time.
+
+**Result:**
+- **One problem per batch is deterministic:** all 8 responses were token-for-token identical across the two runs.
+- **Batching changes the output:** all 8 batched responses differed from their single-problem versions. They first
+  diverged after 61–576 tokens (61, 75, 77, 110, 186, 225, 539, 576).
+
+The batched input is left-padded and computed in bf16, so it is numerically different. Greedy decoding then amplifies
+that difference.
+
+**Changed:** `configs/baseline.yaml` now sets `gen.batch_size: 1`. `intervene.py` copies this setting, so future
+baseline and intervention runs are batch-invariant, at the cost of throughput. The batch-of-8 results were not
+rerun. A trustworthy baseline still needs a batch-size-1 run (on dev and test), plus a repeat run to confirm it is
+identical.
+
+Every number in steps 2–3 comes from batch-of-8 runs, including the "no edit" baseline in each comparison. Within a
+single run all conditions share the same batches, so the comparisons are matched. Outcomes still change by about 3 of
+16 problems when only batch-mates change. That is the same size as every effect reported above.
+
+### 3b. Grading leak
+
+The GSM8K grader fell back to the last number in the text when no `\boxed{}` was present. It did this even when the
+reasoning never closed (`</think>` missing, usually a truncated response). Three responses were marked correct that
+way:
+- `gsm8k/711` and `gsm8k/881` in the baseline. These are 2 of the probe's 166 "correct" training labels.
+- `gsm8k/288` under the random control.
+
+HumanEval+ had the same weakness, since it would run code drafted inside unfinished reasoning. No HumanEval+ result
+was affected.
+
+**Fixed:** in `src/reasoning_env.py`, both graders now mark a response with no `</think>` as wrong. The saved
+results were not regraded or rerun. With the fix applied:
+- GSM8K dev baseline accuracy would be 82.0%, not 83.0%.
+- The random control would score GSM8K test 90%, with 1 fixed and 1 broken.
+
+### 3c. Coding evaluation
+
+- **Two HumanEval+ splits.** `src/reasoning_env.py` draws dev/test with seed 0 (64/99).
+  `coding_eval/data/splits.json` draws development/held-out with seed 2026 (20/40). The probe was trained on our 32
+  dev problems, and 7 of them are in `coding_eval`'s held-out set. A result can't be "held out" under both splits
+  at once. One split must be made canonical; that is a team decision and isn't changed here.
+- **Not graded with EvalPlus.** HumanEval+ was graded by our in-process subprocess runner. It was not graded by the
+  Dockerized EvalPlus harness in `coding_eval/`, which needs an exporter to the manifest/samples format.
+- **Sample size.** 12 test problems.
+
+### 4. Held-out probe test
+
+The probe was never scored on problems outside its training set; its only score is 5-fold cross-validation on dev.
+This check wasn't run. A held-out test of a probe with the wrong target adds little. It is better built into the
+self-correction probe once that has labels.
+
+### 5. HumanEval+ record count
+
+The baseline has **32** HumanEval+ dev records: `output/baseline/baseline/humanevalplus_dev.jsonl`,
+`output/inputs/humanevalplus_dev.jsonl` and `summary.json` (n = 32) all agree. No file in the repo claims 33.
