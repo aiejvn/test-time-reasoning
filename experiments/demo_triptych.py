@@ -78,7 +78,53 @@ def wrong_markers(row: dict) -> tuple:
     return repeated, wrong
 
 
-def panel(row: dict, title: str, style: str, width: int, height: int) -> Panel:
+def load_highlights(path: Path) -> dict:
+    import yaml
+
+    return yaml.safe_load(open(path)) if path.exists() else {}
+
+
+def annotated_body(thinking: str, notes: list, width: int, room: int) -> Text:
+    """Only the annotated steps (phrase bold green/red, rest of its line dim), one line of context before each,
+    in response order, '⋮' between gaps. A phrase repeated in the response is shown once with its count."""
+    src = [ln for ln in thinking.splitlines() if ln.strip()]
+    hits = []  # (line index, phrase, kind, count)
+    for note in notes:
+        kind, phrase = next(iter(note.items()))
+        idx = next((i for i, ln in enumerate(src) if phrase in ln), None)
+        if idx is None:
+            print(f"warning: phrase not found: {phrase!r}", file=sys.stderr)
+            continue
+        hits.append((idx, phrase, kind, thinking.count(phrase)))
+    hits.sort()
+    out, last = [], -2
+    for idx, phrase, kind, n in hits:
+        if idx - 1 > last:
+            if out:
+                out.append(Text("⋮", style="grey50"))
+            out.append(Text(src[idx - 1], style="grey50") if idx > 0 else Text(""))
+        if idx > last:
+            t = Text(src[idx], style="grey62")
+            out.append(t)
+        t = out[-1]
+        t.highlight_words([phrase], "bold green" if kind == "right" else "bold red")
+        if n > 1:
+            t.append(f"  ×{n} in this response", style="bold red" if kind == "wrong" else "bold green")
+        last = idx
+    body = Text("…\n", style="grey50")
+    lines = []
+    for t in out:
+        lines += t.wrap(Console(width=width), width) if t.plain else [Text("")]
+    for t in lines[:room]:
+        body.append_text(t)
+        body.append("\n")
+    return body
+
+
+HIGHLIGHTS = load_highlights(ROOT / "configs/demo_highlights.yaml")
+
+
+def panel(row: dict, title: str, style: str, width: int, height: int, notes=None) -> Panel:
     repeated, wrong = wrong_markers(row)
     ans, ok = V1.verdict_from_row(row)
     finished = "</think>" in row["response"]
@@ -102,9 +148,12 @@ def panel(row: dict, title: str, style: str, width: int, height: int) -> Panel:
         good = right is not None and re.search(num_re(right), ln)
         mark = "bad" if bad else "good" if good else ""
         lines += [(w, mark) for w in textwrap.wrap(ln, width)]
-    body = Text("…\n", style="grey50")
-    for w, mark in lines[-room:]:
-        body.append(w + "\n", style={"bad": "bold red", "good": "bold green", "": "grey62"}[mark])
+    if notes:
+        body = annotated_body(thinking, notes, width, room)
+    else:
+        body = Text("…\n", style="grey50")
+        for w, mark in lines[-room:]:
+            body.append(w + "\n", style={"bad": "bold red", "good": "bold green", "": "grey62"}[mark])
     body.append("\n")
     body.append_text(answer)
     verdict = Text("\n\n" + ("✅ " if ok else "❌ ") + ans, style="bold green" if ok else "bold red")
@@ -119,7 +168,7 @@ def screen(pid: str, rows: dict, question: str, k: int, n: int, console: Console
     grid = Table.grid(expand=True, padding=(0, 1))
     for _ in cols:
         grid.add_column(ratio=1)
-    grid.add_row(*[panel(rows[c], t, s, w // len(cols) - 5, ph) if c in rows else Panel("(not generated)", title=t)
+    grid.add_row(*[panel(rows[c], t, s, w // len(cols) - 5, ph, HIGHLIGHTS.get(pid, {}).get(c)) if c in rows else Panel("(not generated)", title=t)
                    for c, t, s in cols])
     bench = next(iter(rows.values()))["benchmark"]
     head = Text.assemble((f"{BENCH_NAME[bench]} · {pid}", "bold"), (f"   {k}/{n}   ← →  q quit", "grey50"))
