@@ -247,8 +247,7 @@ gsm8k/288 under the random control is marked correct even though it hit the limi
 - Held-out sets at the planned size (40 GSM8K / 24 HumanEval+) or larger.
 - Negative steering (`probe_neg`) and random ablation (`random_ablate`).
 - Input ablation (prompt without "reason step by step", `prompt_variant=plain`).
-- SAE-feature-guided interventions. SAE feature exploration is separate:
-  [`../reports/2026-11-20-sae-exploration.md`](../reports/2026-11-20-sae-exploration.md).
+- SAE-feature-guided interventions.
 
 ## Reproduce
 

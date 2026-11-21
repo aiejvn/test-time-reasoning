@@ -15,10 +15,9 @@ change what's inside while it runs. It then uses that tooling for a first experi
 > that internal state to make it answer correctly more often, on math and on code?
 
 This section explains **what** was done and **how**, assuming you know how transformers and LLMs work but haven't
-seen this project. Detailed results are in [`linear_probe/REPORT.md`](linear_probe/REPORT.md) and
-[`reports/2026-11-20-sae-exploration.md`](reports/2026-11-20-sae-exploration.md).
+seen this project. Detailed results are in [`linear_probe/REPORT.md`](linear_probe/REPORT.md).
 
-### Background: the four ideas this work uses
+### Background: the ideas this work uses
 
 **1. The residual stream.** A transformer keeps one vector per token, here 4096 numbers, and each of its 32 layers
 reads that vector and adds to it. The vector after layer L, called *resid_post* at layer L, is the model's working
@@ -44,11 +43,6 @@ information is *present*, not that the model *uses* it. Using it is what interve
 If steering toward "correct" raises accuracy more than steering along a **random** direction of the same size, the
 direction has a causal effect beyond just disturbing the model. That comparison against random is the key control.
 
-**Also used: sparse autoencoders (SAEs).** An SAE is a separately trained network that rewrites a 4096-number
-activation as a sparse combination of tens of thousands of "features". Usually only a few dozen are active per
-token, and each tends to mean something recognizable (a word, a topic, a reasoning move). We use pretrained SAEs for
-this model to ask which features differ between correct and wrong answers.
-
 ### What was done, step by step
 
 ```
@@ -58,19 +52,13 @@ this model to ask which features differ between correct and wrong answers.
  │ read/edit any layer,    │   │ model on math + code, │   │ each layer's activations │
  │ graders                 │   │ save answers + acts   │   │ → direction u            │
  └─────────────────────────┘   └───────────────────────┘   └────────────┬─────────────┘
-                                          │                            ▼
-                                          │              ┌──────────────────────────┐
-                                          │              │ 4. Interventions         │
-                                          │              │ steer / ablate along u   │
-                                          │              │ vs. random-direction     │
-                                          │              │ control, on unseen probs │
-                                          ▼              └──────────────────────────┘
-                               ┌───────────────────────┐
-                               │ 5. SAE exploration    │
-                               │ which SAE features    │
-                               │ differ correct vs.    │
-                               │ wrong?                │
-                               └───────────────────────┘
+                                                                       ▼
+                                                         ┌──────────────────────────┐
+                                                         │ 4. Interventions         │
+                                                         │ steer / ablate along u   │
+                                                         │ vs. random-direction     │
+                                                         │ control, on unseen probs │
+                                                         └──────────────────────────┘
 ```
 
 #### Step 1. Infrastructure ([`src/reasoning_env.py`](src/reasoning_env.py))
@@ -184,26 +172,6 @@ fixed and which it broke. Four conditions run on the same problems in the same b
 Full tables, every problem's outcome under every condition, and caveats are in
 [`linear_probe/REPORT.md`](linear_probe/REPORT.md).
 
-#### Step 5. SAE exploration ([`experiments/sae_explore.py`](experiments/sae_explore.py))
-
-**What:** using pretrained SAEs for this exact model, list the features whose activation differs most between
-correct and wrong answers. For each feature, show where it fires most strongly, to tell a "reasoning" feature from
-one that just fires on a word like "Wait".
-
-**How:**
-- The step-2 prompts and responses are re-run through the model and every token is encoded with the SAE.
-- Features are ranked by Cohen's d, the difference in group means divided by the pooled standard deviation, both at
-  the last prompt token and averaged over the response.
-- Each feature links to its Neuronpedia dashboard where one exists.
-- SAEs used:
-  - **Llama Scope R1-Distill** at layers 4, 19, 29 and 30 (32,768 features each).
-  - **The SAE from Galichin et al. 2025** at layer 19 (65,536 features).
-- Reconstruction quality on our data, measured as the cosine between the SAE's reconstruction and the real
-  activation: 0.82–0.90 for Llama Scope and 0.84–0.85 for the paper's SAE.
-
-**Result:** per-SAE feature tables are in [`reports/2026-11-20-sae-exploration.md`](reports/2026-11-20-sae-exploration.md).
-These are correlations on dev data. None of these features has been intervened on or validated.
-
 #### Also on this branch: [`coding_eval/`](coding_eval/)
 
 Jacob's evaluator, merged from `jacobpowerr/qmind-coding-eval`. It grades saved HumanEval+ outputs with the official
@@ -217,7 +185,7 @@ is needed.
 - **Negative steering (pushing away from "correct").**
 - **Input ablation:** the prompt without "reason step by step". This is implemented as `prompt_variant=plain` but
   hasn't been run.
-- **SAE-guided interventions:** steering along individual SAE features.
+- **SAE-guided interventions:** steering along individual sparse-autoencoder (SAE) features.
 - **Grading through `coding_eval/`.**
 
 ### Where things are
@@ -228,8 +196,6 @@ is needed.
 | [`src/sae_env.py`](src/sae_env.py) | Model-agnostic helpers used by the above (hooks, batched generation, logging), plus the earlier Gemma helpers |
 | [`experiments/baseline.py`](experiments/baseline.py), [`configs/baseline.yaml`](configs/baseline.yaml) | Step 2: baseline run |
 | [`linear_probe/`](linear_probe/) | Steps 3–4: [README](linear_probe/README.md), `probe.py`, `intervene.py`, configs, [REPORT.md](linear_probe/REPORT.md) |
-| [`experiments/sae_explore.py`](experiments/sae_explore.py), [`experiments/sae_report.py`](experiments/sae_report.py), [`configs/sae_explore.yaml`](configs/sae_explore.yaml) | Step 5: SAE exploration and its report builder |
-| [`reports/2026-11-20-sae-exploration.md`](reports/2026-11-20-sae-exploration.md) | Step 5 results |
 | [`coding_eval/`](coding_eval/) | Jacob's Dockerized EvalPlus evaluator |
 | `artifacts/` (gitignored) | Every run's raw outputs: responses, grades, activations, probe directions, intervention runs |
 | [`notebooks/`](notebooks/) | Earlier, separate Gemma-3-4B-IT SAE notebooks ([below](#gemma-sae-failure-mode-experiments)) |
@@ -280,8 +246,6 @@ python experiments/baseline.py --config configs/baseline.yaml                   
 python linear_probe/probe.py --config linear_probe/configs/probe.yaml                 # step 3
 python linear_probe/intervene.py --config linear_probe/configs/intervene_sweep.yaml   # step 4, pick strength on dev
 python linear_probe/intervene.py --config linear_probe/configs/intervene.yaml         # step 4, held-out test
-python experiments/sae_explore.py --config configs/sae_explore.yaml -o sae=llamascope_l19   # step 5, one SAE per run
-python experiments/sae_report.py                                                      # step 5 report
 ```
 
 - **Overrides:** any config value can be overridden with `-o dotted.key=value`, for example
@@ -367,11 +331,10 @@ papers/            - reference PDFs for the works cited in the proposal
 notebooks/         - Gemma SAE failure-mode experiments, one notebook per failure case (see below)
 src/sae_env.py     - shared helpers: load Gemma, hook the residual stream, load Gemma Scope SAEs, generate, pool features
 src/reasoning_env.py - DeepSeek-R1-Distill-Llama-8B: multi-layer activation extraction, intervention hooks, GSM8K/HumanEval+ eval
-experiments/       - baseline.py (DeepSeek baseline), sae_explore.py + sae_report.py (SAE exploration)
-configs/           - baseline.yaml, sae_explore.yaml
+experiments/       - baseline.py (DeepSeek baseline)
+configs/           - baseline.yaml
 linear_probe/      - linear probes + probe-guided interventions (code, configs, README, REPORT)
 coding_eval/       - Dockerized EvalPlus HumanEval+ evaluator (merged from jacobpowerr/qmind-coding-eval)
-reports/           - SAE exploration report
 requirements.txt   - pinned dependencies
 .env.example       - template for the local, gitignored .env (HF_TOKEN)
 LICENSE            - MIT
