@@ -1,0 +1,46 @@
+{
+  "run_name": "heldout_half",
+  "out_dir": "artifacts/intervene",
+  "baseline_config": "configs/baseline.yaml",
+  "probe_dir": "artifacts/probe/gsm8k_dev",
+  "pool": "prompt_last",
+  "layer": 29,
+  "positions": "all",
+  "random_seed": 1,
+  "alpha_fracs": [
+    0.1
+  ],
+  "conditions": [
+    "probe_pos",
+    "random_pos",
+    "probe_ablate"
+  ],
+  "evals": [
+    {
+      "benchmark": "gsm8k",
+      "split": "test",
+      "n": 20
+    },
+    {
+      "benchmark": "humanevalplus",
+      "split": "test",
+      "n": 12
+    }
+  ],
+  "command": "/home/ubuntu/QMIND/test-time-reasoning/.venv/bin/python experiments/intervene.py --config configs/intervene.yaml -o run_name=heldout_half -o 'alpha_fracs=[0.1]' -o 'evals=[{benchmark: gsm8k, split: test, n: 20}, {benchmark: humanevalplus, split: test, n: 12}]'",
+  "resid_norm": 38.64542770385742,
+  "gen": {
+    "max_new_tokens": 4096,
+    "batch_size": 8,
+    "do_sample": false,
+    "temperature": 0.6
+  },
+  "prompt_variant": "cot",
+  "benchmark": "humanevalplus",
+  "split": "test",
+  "condition": "none",
+  "alpha_frac": null,
+  "alpha": null,
+  "n_examples": 12,
+  "written": "2026-11-20T22:46:19"
+}
